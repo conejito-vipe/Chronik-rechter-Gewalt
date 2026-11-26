@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Chronik rechter Gewalt: Karte und Statistik nach Gemeinden</title>
+<meta name="description" content="Interaktive Karte und Statistik zu Angriffen auf Geflüchtete und Unterkünfte in Deutschland, 2015 bis Februar 2017, nach Gemeinden, Städten und Bundesländern.">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="Chronik rechter Gewalt: Karte und Statistik nach Gemeinden">
+<meta property="og:description" content="Fälle nach Gemeinden, Städten und Bundesländern, mit Vergleichsdaten der Statistischen Ämter.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="de_DE">
+<style>
+/*LEAFLET_CSS*/
+:root {
+  color-scheme: light;
+  --bg: #f6f4f0;
+  --panel: #ffffff;
+  --fg: #1d1b19;
+  --muted: #6b655e;
+  --line: #ddd8d0;
+  --accent: #8a1c1c;
+  --accent-soft: #f3e3df;
+  --warn-bg: #fbf1d9;
+  --warn-fg: #5b4300;
+  --chip: #ece7de;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #171614; --panel: #221f1c; --fg: #ece8e1; --muted: #a39b91; --line: #3a3530;
+    --accent: #e0867a; --accent-soft: #3a2420; --warn-bg: #3a3118; --warn-fg: #f1dc9c; --chip: #2e2a26;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #171614; --panel: #221f1c; --fg: #ece8e1; --muted: #a39b91; --line: #3a3530;
+  --accent: #e0867a; --accent-soft: #3a2420; --warn-bg: #3a3118; --warn-fg: #f1dc9c; --chip: #2e2a26;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: 16px; padding-bottom: 32px;
+}
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0 0 8px; }
+p { margin: 0 0 8px; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.notice { background: var(--warn-bg); color: var(--warn-fg); border-radius: 6px; padding: 10px 12px; margin: 12px 0; font-size: 13px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin: 12px 0 6px; }
+.filters label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 3px; min-width: 0; }
+select, input[type="search"], button {
+  font: inherit; color: var(--fg); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-height: 36px;
+}
+input[type="search"] { min-width: 180px; }
+button { cursor: pointer; }
+button[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; min-height: 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--chip); border-radius: 999px; padding: 3px 4px 3px 10px; font-size: 13px; }
+.chip button { min-height: 24px; padding: 0 8px; border-radius: 999px; font-size: 13px; }
+.stats { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 12px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; min-width: 0; }
+.stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 12px; }
+@media (max-width: 760px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+#map { height: 580px; min-width: 0; width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+@media (max-width: 760px) { #map { height: 440px; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-width: 0; max-height: 580px; overflow: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; font-size: 12px; align-items: center; }
+.legend button { min-height: 30px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 14px; height: 12px; border-radius: 2px; }
+.case { border-top: 1px solid var(--line); padding: 8px 0; min-width: 0; overflow-wrap: anywhere; }
+.case .meta { font-size: 12px; color: var(--muted); }
+section { margin-top: 20px; }
+.tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--panel); }
+td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+td .sub { display: block; font-size: 12px; color: var(--muted); }
+.statbox { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 8px 0; background: var(--bg); min-width: 0; }
+.statbox dl { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 10px; margin: 0; font-size: 13px; }
+.statbox dt { min-width: 0; overflow-wrap: anywhere; }
+.statbox dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.footer { margin-top: 20px; font-size: 12px; color: var(--muted); }
+.leaflet-container { font: inherit; }
+.lbl { white-space: nowrap; transform: translate(-50%, -50%); color: var(--fg); text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 2px var(--bg); font-weight: 600; cursor: pointer; }
+.lbl-land { font-size: 11px; font-weight: 400; letter-spacing: 0.03em; width: 120px; text-align: center; white-space: normal; line-height: 1.25; opacity: 0.9; cursor: pointer; }
+.lbl-stadt { font-size: 12px; font-weight: 500; }
+.lbl:focus-visible { outline: 2px solid var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Chronik rechter Gewalt: Karte und Statistik nach Gemeinden</h1>
+  <p class="muted">Angriffe auf Geflüchtete und Unterkünfte in Deutschland, 2015 bis Februar 2017. Bereinigter Datenstand 26.11.2026.</p>
+
+  <div class="notice" role="note">
+    <strong>Zum Schutz der Unterkünfte:</strong> Die Karte zeigt nur die Gemeinde. Die Punkte liegen im Inneren der Gemeinde und markieren nicht den genauen Ort des Vorfalls. Straßennamen sind aus den Beschreibungen entfernt.
+  </div>
+
+  <form class="filters" id="filters" onsubmit="return false" aria-label="Filter">
+    <label>Jahr
+      <select id="f-jahr"><option value="">Alle</option><option>2015</option><option>2016</option><option>2017</option></select>
+    </label>
+    <label>Kategorie
+      <select id="f-kat"><option value="">Alle</option></select>
+    </label>
+    <label>Bundesland
+      <select id="f-land"><option value="">Alle</option></select>
+    </label>
+    <label>Suche
+      <input type="search" id="f-q" placeholder="z. B. Brandanschlag, Ort, Stichwort" autocomplete="off">
+    </label>
+    <div>
+      <span class="muted" style="font-size:12px;display:block;margin-bottom:3px">Einfärbung</span>
+      <button type="button" id="m-abs" aria-pressed="true">Fälle</button>
+      <button type="button" id="m-rate" aria-pressed="false">pro 100.000 EW</button>
+    </div>
+  </form>
+  <div class="chips" id="chips" aria-live="polite"></div>
+
+  <div class="stats">
+    <div class="stat"><span class="muted">Fälle (Auswahl)</span><b id="s-faelle">–</b></div>
+    <div class="stat"><span class="muted">Gemeinden betroffen</span><b id="s-gem">–</b></div>
+    <div class="stat"><span class="muted">Meiste Fälle in einer Gemeinde</span><b id="s-max">–</b></div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div id="map" role="region" aria-label="Karte: Gemeinden, Bundesländer und Städte"></div>
+      <div class="legend" id="legend" aria-label="Einfärbung. Klick filtert."></div>
+      <p class="muted" style="font-size:12px">Klick auf eine Gemeinde, eine Stadt, eine Einfärbung oder eine Landesgrenze filtert die Ansicht. Erneuter Klick hebt den Filter auf.</p>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite">
+      <h2>Gemeinde auswählen</h2>
+      <p class="muted">Klicke auf eine Gemeinde oder einen Punkt, um Fälle und Statistik zu sehen.</p>
+    </aside>
+  </div>
+
+  <section aria-labelledby="h-stat">
+    <h2 id="h-stat">Gemeinden und Städte im Vergleich</h2>
+    <p class="muted" id="stat-note"></p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Gemeinde</th><th>Land</th>
+          <th class="num">Einwohner</th>
+          <th class="num">Fälle</th>
+          <th class="num">Fälle pro 100.000 EW</th>
+          <th class="num">Erwerbslose<sup>1</sup></th>
+          <th class="num">Männer / Frauen (%)</th>
+          <th class="num">Straftaten (Abs. / je 100.000)</th>
+          <th class="num">Entwicklung seit 2006</th>
+          <th class="num">Deutsche<sup>2</sup></th>
+          <th class="num">Ausländer<sup>2</sup></th>
+          <th class="num">Ohne Berufsabschluss<sup>3</sup></th>
+        </tr></thead>
+        <tbody id="stat-body"></tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:12px">Alle Zahlenspalten: absolut / Anteil in %. Einwohner, Männer/Frauen: Destatis Gemeindeverzeichnis, 31.12.2025.<br>
+      <sup>1</sup> Zensus 2022, Tab. 2000S-1001; Anteil an den Erwerbspersonen; Erwerbslose nach ILO-Definition, nicht die bei der Arbeitsagentur gemeldeten Arbeitslosen.<br>
+      <sup>2</sup> Zensus 2022, Tab. 1000A-1019; Ausländer einschließlich Sonstige.<br>
+      <sup>3</sup> Zensus 2022, Tab. 2000S-1003; Personen ab 15 Jahren, nur Gemeinden, die der Zensus ausweist, gerundet.</p>
+  </section>
+
+  <section aria-labelledby="h-cases">
+    <h2 id="h-cases">Einzelfälle</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Datum</th><th>Gemeinde</th><th>Kategorie</th><th>Beschreibung</th><th>Quelle</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="muted" id="more-wrap" style="margin-top:8px"></p>
+  </section>
+
+  <section aria-labelledby="h-to">
+    <h2 id="h-to">Todesopfer rechter Gewalt</h2>
+    <p class="muted" style="font-size:13px">Verzeichnis der Amadeu Antonio Stiftung, Liste „Todesopfer rechter Gewalt“ (nur Faktenangaben: Datum, Ort, Name, Alter, Status, Link zur Einzelseite). Die Angaben zum Status folgen der Stiftung („staatlich anerkannt“: von der Bundesregierung anerkannt; „Verdachtsfall“, „außerhalb der Zählung“: Einordnung der Stiftung). Jede Zeile verlinkt auf die Einzelseite der Stiftung mit Quellen. Die Liste ist unabhängig von den Fällen der Karte und deckt 1990 bis 2026 ab. Die Erfassung kann Lücken enthalten, maßgeblich ist die Stiftung.</p>
+    <div class="filters" style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
+      <label>Bundesland <select id="to-land"><option value="">Alle</option></select></label>
+      <label>Status <select id="to-status"><option value="">Alle</option><option>staatlich anerkannt</option><option>Verdachtsfall</option><option>außerhalb der Zählung</option></select></label>
+      <label>Suche <input id="to-q" type="search" placeholder="Name oder Ort"></label>
+    </div>
+    <p class="muted" id="to-count"></p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Datum</th><th>Ort</th><th>Bundesland</th><th>Name</th><th class="num">Alter</th><th>Status</th><th>Quelle</th></tr></thead>
+        <tbody id="to-body"></tbody>
+      </table>
+    </div>
+    <p class="muted" id="to-more" style="margin-top:8px"></p>
+  </section>
+
+  <footer class="footer">
+    <p><strong>Quellen</strong> (öffnen sich in einem neuen Tab):</p>
+    <ul>
+      <li><a href="https://gdz.bkg.bund.de/index.php/default/digitale-geodaten/verwaltungsgebiete.html" target="_blank" rel="noopener noreferrer">Gemeindegrenzen und Einwohnerzahlen, BKG VG250-EW (dl-de/by-2-0)</a></li>
+      <li><a href="https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugJ/31122025_Auszug_GV.html" target="_blank" rel="noopener noreferrer">Destatis, Gemeindeverzeichnis 31.12.2025 (Einwohner, Männer, Frauen)</a></li>
+      <li><a href="https://bundeswahlleiterin.de/bundestagswahlen/2025/ergebnisse/opendata.html" target="_blank" rel="noopener noreferrer">Bundeswahlleiterin, Bundestagswahl 2025 (Wahlkreise, Zuordnung der Gemeinden)</a></li>
+      <li><a href="https://ergebnisse.zensus2022.de/datenbank/online/" target="_blank" rel="noopener noreferrer">Zensus 2022, Tabellen 1000A-1019 (Staatsangehörigkeit), 2000S-1003 (Beruflicher Abschluss) und 2000S-1001 (Erwerbsstatus), Stand 15.05.2022, Datenlizenz Deutschland, Namensnennung 2.0</a></li>
+      <li><a href="https://www.amadeu-antonio-stiftung.de/todesopfer-rechter-gewalt/" target="_blank" rel="noopener noreferrer">Amadeu Antonio Stiftung, Todesopfer rechter Gewalt (Liste, Faktenangaben; Rechte an Texten bei der Stiftung)</a></li>
+      <li><a href="https://www-genesis.destatis.de/" target="_blank" rel="noopener noreferrer">Destatis, GENESIS-Online (Bevölkerung, Straftaten, Arbeitslosigkeit)</a></li>
+      <li><a href="https://www.regionalstatistik.de/" target="_blank" rel="noopener noreferrer">Statistische Ämter des Bundes und der Länder, Regionalstatistik</a></li>
+      <li><a href="https://www.bundeswahlleiterin.de/" target="_blank" rel="noopener noreferrer">Bundeswahlleiterin, Wahlergebnisse</a></li>
+      <li><a href="https://dserver.bundestag.de/" target="_blank" rel="noopener noreferrer">Bundestagsdrucksachen (Chronik-Quellen)</a></li>
+    </ul>
+    <p>Die Chronik-Daten stammen aus Bundestagsdrucksachen, Antworten der Bundesregierung und Landesministerien, Polizeiangaben und Beratungsregistern. Die Datenlizenz ist noch nicht abschließend geklärt. Die Gemeindegrenzen dürfen frei genutzt, aber nicht verkauft werden.</p>
+  </footer>
+</main>
+
+<script>/*LEAFLET_JS*/</script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Hilfsfunktionen ----------
+  function el(tag, props, children) {
+    var n = document.createElement(tag);
+    if (props) for (var k in props) {
+      if (k === "text") n.textContent = props[k];
+      else if (k === "class") n.className = props[k];
+      else n.setAttribute(k, props[k]);
+    }
+    (children || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  function fmt(n) { return (n == null || isNaN(n)) ? "–" : Number(n).toLocaleString("de-DE"); }
+  function pct(n, d) { return (n == null || !d) ? "–" : (n / d * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " %"; }
+  function fmtPct(v) { return v == null || isNaN(v) ? "–" : Number(v).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " %"; }
+  function deDate(iso) { var p = (iso || "").split("-"); return p.length === 3 ? p[2] + "." + p[1] + "." + p[0] : (iso || ""); }
+  function urlsOf(s) {
+    if (!s) return [];
+    return s.split(/\s*[;|]\s*|\s+(?=https?:\/\/)/).filter(function (u) { return /^https?:\/\//.test(u); });
+  }
+  function extLink(href, text) {
+    return el("a", { href: href, target: "_blank", rel: "noopener noreferrer", text: text });
+  }
+  function esc(t) { return String(t).replace(/[&<>"']/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]; }); }
+  function hasKeys(o) { for (var k in o) if (o.hasOwnProperty(k)) return true; return false; }
+
+  var PALETTE = ["#fde9dc", "#f9b98c", "#ee7a52", "#c2362f", "#6e0f1b"];
+  var NA_COL = "#b5afa5";
+  var LAND_COL = "#2f6fbf";
+  var CITY_ZOOM = 7;
+
+  // ---------- Daten ----------
+  var TO = [], TOLIM = 60, CASES = [], GEO = null, LAND = null, STAT = {}, WAHL = {};
+  var ags2name = {}, ags2land = {}, ags2ewz = {}, ags2rp = {};
+
+  Promise.all([
+    fetch("faelle.json").then(function (r) { return r.json(); }),
+    fetch("gemeinden.geojson").then(function (r) { return r.json(); }),
+    fetch("laender.geojson").then(function (r) { return r.json(); }),
+    fetch("statistik.json").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }),
+    fetch("wahl.json").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
+  ]).then(function (res) {
+    CASES = res[0]; GEO = res[1]; LAND = res[2]; STAT = res[3] || {}; WAHL = res[4] || {};
+    fetch("todesopfer.json").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }).then(function (t) { TO = t; TOAGS = {}; TOCNT = {}; t.forEach(function (x) { if (x.ags) { TOAGS[x.ags] = true; TOCNT[x.ags] = (TOCNT[x.ags] || 0) + 1; } }); initTO(); renderTO(); if (typeof update === "function" && GEO && polyLayer) update(); });
+    GEO.features.forEach(function (f) {
+      var p = f.properties;
+      ags2name[p.ags] = p.name; ags2land[p.ags] = p.land; ags2ewz[p.ags] = p.ewz; ags2rp[p.ags] = p.rp;
+    });
+    initFilters();
+    initMap();
+    update();
+  }).catch(function () {
+    document.getElementById("panel").textContent = "Die Daten konnten nicht geladen werden. Bitte die Seite neu laden.";
+  });
+
+  // ---------- Zustand ----------
+  var TO_COL = "#5b2a86", TOAGS = {}, TOCNT = {};
+  var F = { todes: false, jahr: "", kat: "", land: "", q: "", mode: "abs", ags: {}, klassen: {}, focus: null, limit: 100 };
+  var map, polyLayer, landHit, landLayer, landLabels, cityLabels, markerLayer;
+  var counts = {}, classOfAgs = {}, breaks = [];
+
+  function initFilters() {
+    var kats = {}, lands = {};
+    CASES.forEach(function (c) { kats[c.kategorie] = 1; });
+    Object.keys(ags2land).forEach(function (a) { lands[ags2land[a]] = 1; });
+    fill("f-kat", Object.keys(kats).sort());
+    fill("f-land", Object.keys(lands).sort());
+    function fill(id, values) {
+      var s = document.getElementById(id);
+      values.forEach(function (v) { s.appendChild(el("option", { value: v, text: v })); });
+    }
+    document.getElementById("f-jahr").onchange = function (e) { F.jahr = e.target.value; F.limit = 100; update(); };
+    document.getElementById("f-kat").onchange = function (e) { F.kat = e.target.value; F.limit = 100; update(); };
+    document.getElementById("f-land").onchange = function (e) { F.land = e.target.value; F.limit = 100; update(); };
+    var t = null;
+    document.getElementById("f-q").oninput = function (e) {
+      clearTimeout(t);
+      t = setTimeout(function () { F.q = e.target.value.trim().toLowerCase(); F.limit = 100; update(); }, 200);
+    };
+    document.getElementById("m-abs").onclick = function () { setMode("abs"); };
+    document.getElementById("m-rate").onclick = function () { setMode("rate"); };
+  }
+  function setMode(m) {
+    F.mode = m;
+    document.getElementById("m-abs").setAttribute("aria-pressed", m === "abs");
+    document.getElementById("m-rate").setAttribute("aria-pressed", m === "rate");
+    update();
+  }
+
+  // Filter in einer Reihe: Jahr, Kategorie, Land, Suche, Gemeinde-Auswahl
+  function baseOk(c) {
+    if (F.jahr && c.date.slice(0, 4) !== F.jahr) return false;
+    if (F.kat && c.kategorie !== F.kat) return false;
+    if (F.land && ags2land[c.ags] !== F.land) return false;
+    if (F.q) {
+      var hay = (c.beschreibung + " " + c.gemeinde + " " + c.ort + " " + c.kategorie + " " + c.quelle).toLowerCase();
+      if (hay.indexOf(F.q) === -1) return false;
+    }
+    if (hasKeys(F.ags) && !F.ags[c.ags]) return false;
+    if (F.todes && !TOAGS[c.ags]) return false;
+    return true;
+  }
+  function toVisible(a) {
+    return !!TOAGS[a] && (!F.land || ags2land[a] === F.land) && (!hasKeys(F.ags) || !!F.ags[a]);
+  }
+
+  function rateOf(ags) { var e = ags2ewz[ags]; return e ? (counts[ags] || 0) / e * 100000 : null; }
+
+  function computeClasses() {
+    var vals = [];
+    GEO.features.forEach(function (f) {
+      var a = f.properties.ags;
+      var v = F.mode === "abs" ? (counts[a] || 0) : rateOf(a);
+      if (v != null && v > 0) vals.push(v);
+    });
+    vals.sort(function (a, b) { return a - b; });
+    breaks = [];
+    if (vals.length) for (var i = 1; i < 5; i++) breaks.push(vals[Math.min(vals.length - 1, Math.floor(vals.length * i / 5))]);
+    classOfAgs = {};
+    GEO.features.forEach(function (f) {
+      var a = f.properties.ags;
+      if (F.mode === "rate" && !ags2ewz[a]) { classOfAgs[a] = "na"; return; }
+      var v = F.mode === "abs" ? (counts[a] || 0) : rateOf(a);
+      if (!v) { classOfAgs[a] = null; return; }
+      var i = 0; while (i < breaks.length && v > breaks[i]) i++;
+      classOfAgs[a] = Math.min(i, 4);
+    });
+  }
+
+  // ---------- Karte ----------
+  function initMap() {
+    map = L.map("map", { zoomSnap: 0.25, minZoom: 5, maxZoom: 12, attributionControl: true });
+    map.attributionControl.setPrefix(false);
+    map.attributionControl.addAttribution("Gemeindegrenzen © BKG (VG250-EW), dl-de/by-2-0");
+
+    polyLayer = L.geoJSON(GEO, {
+      style: styleFor,
+      onEachFeature: function (f, layer) {
+        layer.on("click", function () { toggleAgs(f.properties.ags); });
+        layer.on("mouseover", function () { layer.setStyle({ weight: 1.2, color: "#000", dashArray: null }); });
+        layer.on("mouseout", function () { polyLayer.resetStyle(layer); });
+        layer.bindTooltip(function () { return tip(f.properties); }, { sticky: true });
+      }
+    }).addTo(map);
+
+    landLayer = L.geoJSON(LAND, { interactive: false, style: { color: LAND_COL, weight: 2.2, fill: false, opacity: 1 } }).addTo(map);
+    // Unsichtbare, breite Linie über den Landesgrenzen, damit sie klickbar sind
+    landHit = L.geoJSON(LAND, {
+      style: { color: "#000", weight: 12, opacity: 0, fill: false },
+      onEachFeature: function (f, layer) {
+        layer.on("click", function () { toggleLand(f.properties.name); });
+        layer.bindTooltip(f.properties.name, { sticky: true });
+      }
+    }).addTo(map);
+
+    markerLayer = L.layerGroup().addTo(map);
+    landLabels = L.layerGroup();
+    cityLabels = L.layerGroup();
+    LAND.features.forEach(function (f) {
+      var c = L.latLng(f.properties.lp[1], f.properties.lp[0]);
+      var m = L.marker(c, { icon: labelIcon(f.properties.name, "land"), keyboard: true, title: f.properties.name });
+      m.on("click", function () { toggleLand(f.properties.name); });
+      landLabels.addLayer(m);
+    });
+    GEO.features.forEach(function (f) {
+      var p = f.properties;
+      if ((p.ewz || 0) < 100000) return;
+      var m = L.marker([p.rp[1], p.rp[0]], { icon: labelIcon(p.name, "stadt"), keyboard: true, title: p.name });
+      m.on("click", function () { toggleAgs(p.ags); });
+      cityLabels.addLayer(m);
+    });
+
+    map.fitBounds(polyLayer.getBounds(), { padding: [8, 8] });
+    map.on("zoomend", syncLabels);
+    syncLabels();
+  }
+
+  function labelIcon(text, kind) {
+    var html = kind === "land" ? esc(text).replace(/-/g, "-<br>") : esc(text);
+    return L.divIcon({ className: "lbl lbl-" + kind, html: html, iconSize: null });
+  }
+  function syncLabels() {
+    if (!map) return;
+    if (map.getZoom() >= CITY_ZOOM) { map.removeLayer(landLabels); map.addLayer(cityLabels); }
+    else { map.removeLayer(cityLabels); map.addLayer(landLabels); }
+  }
+
+  function tip(p) {
+    var c = counts[p.ags] || 0;
+    var rate = p.ewz ? fmtPct(c / p.ewz * 100000).replace(" %", "") : "k. A.";
+    return p.name + " (" + p.land + ") · " + fmt(c) + " Fälle" + (p.ewz ? " · " + rate + " pro 100.000 EW" : "") + (TOCNT[p.ags] ? " · " + fmt(TOCNT[p.ags]) + " Todesopfer" : "");
+  }
+
+  function styleFor(f) {
+    var p = f.properties;
+    var cls = classOfAgs[p.ags];
+    var col = cls === "na" ? NA_COL : (cls == null ? null : PALETTE[cls]);
+    var sel = F.focus === p.ags || F.ags[p.ags];
+    return {
+      weight: sel ? 1.4 : 0.35,
+      color: sel ? "#000" : "#6f6a62",
+      dashArray: sel ? null : "2 2",
+      fillColor: toVisible(p.ags) ? TO_COL : (col || "transparent"),
+      fillOpacity: toVisible(p.ags) ? 0.9 : (col ? 0.85 : 0),
+      opacity: 0.8
+    };
+  }
+
+  function drawMarkers(shown) {
+    markerLayer.clearLayers();
+    GEO.features.forEach(function (f) {
+      var p = f.properties;
+      if (!toVisible(p.ags)) return;
+      var m = L.circleMarker([p.rp[1], p.rp[0]], { radius: Math.min(14, 5 + 2 * Math.sqrt(TOCNT[p.ags])), color: "#ffffff", weight: 2, fillColor: TO_COL, fillOpacity: 1 });
+      m.on("click", function () { toggleAgs(p.ags); });
+      m.bindTooltip(tip(p), { direction: "top" });
+      markerLayer.addLayer(m);
+    });
+    GEO.features.forEach(function (f) {
+      var p = f.properties;
+      var c = shown[p.ags] || 0;
+      if (!c) return;
+      var r = Math.min(22, 3 + 2.2 * Math.sqrt(c));
+      var m = L.circleMarker([p.rp[1], p.rp[0]], { radius: r, color: "#ffffff", weight: 1, fillColor: "#8a1c1c", fillOpacity: 0.75 });
+      m.on("click", function () { toggleAgs(p.ags); });
+      m.bindTooltip(tip(p), { direction: "top" });
+      markerLayer.addLayer(m);
+    });
+  }
+
+  // ---------- Filteraktionen ----------
+  function toggleAgs(ags) {
+    if (F.ags[ags]) delete F.ags[ags]; else F.ags[ags] = true;
+    F.focus = ags;
+    F.limit = 100;
+    update();
+  }
+  function toggleLand(name) {
+    F.land = F.land === name ? "" : name;
+    document.getElementById("f-land").value = F.land;
+    F.limit = 100;
+    update();
+  }
+  function toggleKlasse(k) {
+    var key = String(k);
+    if (F.klassen[key]) delete F.klassen[key]; else F.klassen[key] = true;
+    F.limit = 100;
+    update();
+  }
+
+  function renderChips() {
+    var box = document.getElementById("chips");
+    box.textContent = "";
+    var items = [];
+    if (F.jahr) items.push(["Jahr " + F.jahr, function () { F.jahr = ""; document.getElementById("f-jahr").value = ""; }]);
+    if (F.kat) items.push([F.kat, function () { F.kat = ""; document.getElementById("f-kat").value = ""; }]);
+    if (F.land) items.push([F.land, function () { F.land = ""; document.getElementById("f-land").value = ""; }]);
+    if (F.todes) items.push(["Gemeinden mit Todesopfern", function () { F.todes = false; }]);
+    if (F.q) items.push(["Suche: " + F.q, function () { F.q = ""; document.getElementById("f-q").value = ""; }]);
+    Object.keys(F.ags).forEach(function (a) { items.push([ags2name[a], function () { delete F.ags[a]; if (F.focus === a) F.focus = null; }]); });
+    Object.keys(F.klassen).forEach(function (k) {
+      var label = k === "na" ? "ohne Einwohnerzahl" : (classRangeLabel(Number(k)));
+      items.push(["Einfärbung: " + label, function () { delete F.klassen[k]; }]);
+    });
+    items.forEach(function (it) {
+      box.appendChild(el("span", { class: "chip" }, [
+        document.createTextNode(it[0]),
+        el("button", { type: "button", "aria-label": "Filter entfernen: " + it[0], text: "×" })
+      ]));
+      var btn = box.lastChild.lastChild;
+      btn.onclick = function () { it[1](); F.limit = 100; update(); };
+    });
+    if (items.length) {
+      var all = el("button", { type: "button", text: "Alle Filter zurücksetzen" });
+      all.onclick = resetAll;
+      box.appendChild(all);
+    }
+  }
+  function resetAll() {
+    F.todes = false; F.jahr = ""; F.kat = ""; F.land = ""; F.q = ""; F.ags = {}; F.klassen = {}; F.focus = null; F.limit = 100;
+    ["f-jahr", "f-kat", "f-land"].forEach(function (id) { document.getElementById(id).value = ""; });
+    document.getElementById("f-q").value = "";
+    update();
+  }
+
+  function classRangeLabel(i) {
+    var lo = i === 0 ? 0 : breaks[i - 1];
+    var hi = i < 4 ? breaks[i] : null;
+    if (hi == null) return "ab " + fmt(Math.round(lo));
+    return (i === 0 ? "bis " + fmt(Math.round(hi)) : fmt(Math.round(lo)) + " bis " + fmt(Math.round(hi)));
+  }
+
+  function drawLegend() {
+    var box = document.getElementById("legend");
+    box.textContent = "";
+    var unit = F.mode === "abs" ? "Fälle" : "pro 100.000 EW";
+    box.appendChild(el("span", { class: "muted", text: "Einfärbung (" + unit + "):" }));
+    var used = {};
+    Object.keys(classOfAgs).forEach(function (a) { if (classOfAgs[a] != null) used[classOfAgs[a]] = true; });
+    [0, 1, 2, 3, 4].forEach(function (i) {
+      if (!used[i] || !breaks.length) return;
+      var on = !!F.klassen[String(i)];
+      var b = el("button", { type: "button", "aria-pressed": on ? "true" : "false" }, [
+        el("i", { style: "background:" + PALETTE[i] }),
+        document.createTextNode(classRangeLabel(i))
+      ]);
+      b.onclick = function () { toggleKlasse(i); };
+      box.appendChild(b);
+    });
+    var nTo = Object.keys(TOAGS).length;
+    if (nTo) {
+      var bt = el("button", { type: "button", "aria-pressed": F.todes ? "true" : "false", title: "Nur Gemeinden mit Todesopfern rechter Gewalt (Amadeu Antonio Stiftung, 1990 bis 2026)" }, [
+        el("i", { style: "background:" + TO_COL }), document.createTextNode("Todesopfer rechter Gewalt (" + fmt(nTo) + " Gemeinden)")
+      ]);
+      bt.onclick = function () { F.todes = !F.todes; F.limit = 100; update(); };
+      box.appendChild(bt);
+    }
+    if (used["na"] || F.mode === "rate") {
+      var hasNa = Object.keys(classOfAgs).some(function (a) { return classOfAgs[a] === "na"; });
+      if (hasNa) {
+        var on2 = !!F.klassen["na"];
+        var b2 = el("button", { type: "button", "aria-pressed": on2 ? "true" : "false" }, [
+          el("i", { style: "background:" + NA_COL }), document.createTextNode("keine Einwohnerzahl")
+        ]);
+        b2.onclick = function () { toggleKlasse("na"); };
+        box.appendChild(b2);
+      }
+    }
+  }
+
+  // ---------- Panel: Gemeinde-Detail ----------
+  function renderPanel(list) {
+    var panel = document.getElementById("panel");
+    panel.textContent = "";
+    var ags = F.focus;
+    if (!ags || !GEO) {
+      panel.appendChild(el("h2", { text: "Gemeinde auswählen" }));
+      panel.appendChild(el("p", { class: "muted", text: "Klicke auf eine Gemeinde oder einen Punkt, um Fälle und Statistik zu sehen." }));
+      return;
+    }
+    var feat = GEO.features.find(function (f) { return f.properties.ags === ags; });
+    var p = feat.properties;
+    var mine = list.filter(function (c) { return c.ags === ags; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    panel.appendChild(el("h2", { text: p.name }));
+    panel.appendChild(el("p", { class: "muted", text: p.land + " · AGS " + p.ags }));
+
+    var s = STAT[ags] || {};
+    var box = el("div", { class: "statbox" });
+    var dl = el("dl");
+    function row(label, abs, share) {
+      dl.appendChild(el("dt", { text: label }));
+      dl.appendChild(el("dd", { text: abs == null ? "–" : fmt(abs) }));
+      dl.appendChild(el("dd", { text: share == null ? "–" : fmtPct(share) }));
+    }
+    dl.appendChild(el("dt", { text: "Kennzahl", class: "muted" }));
+    dl.appendChild(el("dd", { text: "Absolut", class: "muted" }));
+    dl.appendChild(el("dd", { text: "%", class: "muted" }));
+    row("Einwohner", p.ewz || null, null);
+    row("Fälle in der Chronik", mine.length, p.ewz ? mine.length / p.ewz * 100 : null);
+    if (s.ewz_2006) row("Einwohner 2006 → Entwicklung", s.ewz_2006, p.ewz ? (p.ewz - s.ewz_2006) / s.ewz_2006 * 100 : null);
+    if (s.maenner) row("Männer", s.maenner.abs, s.maenner.pct);
+    if (s.frauen) row("Frauen", s.frauen.abs, s.frauen.pct);
+    if (s.straftaten) row("Straftaten insgesamt", s.straftaten.abs, s.straftaten.je100k);
+    if (s.straftaten_2006) row("Straftaten 2006 → Entwicklung", s.straftaten_2006, s.straftaten ? (s.straftaten.abs - s.straftaten_2006) / s.straftaten_2006 * 100 : null);
+    if (s.deutsche) row("Deutsche (Zensus 2022, Tab. 1000A-1019)", s.deutsche.abs, s.deutsche.pct);
+    if (s.auslaender) row("Ausländer und Sonstige (Zensus 2022, Tab. 1000A-1019)", s.auslaender.abs, s.auslaender.pct);
+    if (s.erwerb) {
+      var er = s.erwerb;
+      dl.appendChild(el("dt", { text: "Erwerbsstatus, Personen ab 15 Jahren (Zensus 2022, Tab. 2000S-1001, gerundet). Erwerbslose nach ILO-Definition (Befragung), nicht die bei der Arbeitsagentur gemeldeten Arbeitslosen.", class: "muted", style: "grid-column:1/-1;margin-top:6px" }));
+      [["gesamt", "Personen ab 15 Jahren"], ["erwerbspersonen", "Erwerbspersonen"], ["erwerbstaetige", "· Erwerbstätige"], ["erwerbslose", "· Erwerbslose"], ["nichterwerb", "Nichterwerbspersonen"]].forEach(function (k) {
+        if (er[k[0]]) row(k[1], er[k[0]].abs, k[0] === "gesamt" ? 100 : er[k[0]].pct);
+      });
+      if (er.erwerbslosenquote != null) row("Erwerbslosenquote (Erwerbslose je Erwerbspersonen)", null, er.erwerbslosenquote);
+    }
+    if (s.bildung) {
+      var b = s.bildung;
+      dl.appendChild(el("dt", { text: "Höchster beruflicher Abschluss, Personen ab 15 Jahren (Zensus 2022, Tab. 2000S-1003, gerundet)", class: "muted", style: "grid-column:1/-1;margin-top:6px" }));
+      row("Personen ab 15 Jahren", b.gesamt, 100);
+      [["mit", "Mit Abschluss"], ["lehre", "· Lehre, duale Ausbildung"], ["fachschule", "· Fachschulabschluss"], ["hochschule", "· Bachelor, Master, Diplom, Promotion"], ["ohne", "Ohne Abschluss"]].forEach(function (k) {
+        if (b[k[0]]) row(k[1], b[k[0]].abs, b[k[0]].pct);
+      });
+    }
+    box.appendChild(dl);
+    if (!hasStats(s)) box.appendChild(el("p", { class: "muted", style: "margin:8px 0 0;font-size:12px", text: "Vergleichsdaten der Statistischen Ämter für diese Gemeinde fehlen noch." }));
+    panel.appendChild(box);
+
+    var w = WAHL["2025"];
+    if (w && w.gemeinde_wk && w.gemeinde_wk[ags] && w.wk[w.gemeinde_wk[ags]]) {
+      var wk = w.wk[w.gemeinde_wk[ags]];
+      panel.appendChild(el("h2", { text: "Bundestagswahl 2025 (Zweitstimme)" }));
+      panel.appendChild(el("p", { class: "muted", style: "font-size:12px", text: "Wahlkreis " + w.gemeinde_wk[ags] + " " + wk.name + ". " + w.hinweis }));
+      var ptab = el("table", { style: "min-width:0;font-size:12px" });
+      ptab.appendChild(el("thead", null, [el("tr", null, [el("th", { text: "Partei" }), el("th", { class: "num", text: "Absolut" }), el("th", { class: "num", text: "%" })])]));
+      var ptb = el("tbody");
+      Object.keys(wk.parteien).map(function (k) { return [k, wk.parteien[k]]; })
+        .sort(function (a, b) { return b[1].abs - a[1].abs; }).slice(0, 8).forEach(function (kv) {
+          ptb.appendChild(el("tr", null, [el("td", { text: kv[0] }), el("td", { class: "num", text: fmt(kv[1].abs) }), el("td", { class: "num", text: fmtPct(kv[1].pct) })]));
+        });
+      ptab.appendChild(ptb);
+      panel.appendChild(el("div", { class: "tablewrap", style: "margin-bottom:8px" }, [ptab]));
+    }
+
+    if (s.wahlen && s.wahlen.length) {
+      panel.appendChild(el("h2", { text: "Letzte Wahlergebnisse" }));
+      s.wahlen.slice(-5).forEach(function (w) {
+        var t = el("table", { style: "min-width:0;font-size:12px" });
+        t.appendChild(el("thead", null, [el("tr", null, [el("th", { text: "Wahl " + w.jahr }), el("th", { class: "num", text: "Absolut" }), el("th", { class: "num", text: "%" })])]));
+        var tb = el("tbody");
+        (w.ergebnisse || []).forEach(function (r) {
+          tb.appendChild(el("tr", null, [el("td", { text: r.partei }), el("td", { class: "num", text: fmt(r.abs) }), el("td", { class: "num", text: fmtPct(r.pct) })]));
+        });
+        t.appendChild(tb);
+        panel.appendChild(el("div", { class: "tablewrap", style: "margin-bottom:8px" }, [t]));
+      });
+    }
+
+    var tom = TO.filter(function (t) { return t.ags === ags; });
+    if (tom.length) {
+      panel.appendChild(el("h2", { text: "Todesopfer rechter Gewalt (" + fmt(tom.length) + ")" }));
+      tom.forEach(function (t) {
+        panel.appendChild(el("div", { class: "case" }, [
+          el("div", { class: "meta", text: deDate(t.datum) + (t.alter ? " · " + t.alter + (/^\d+$/.test(t.alter) ? " Jahre" : "") : "") + (t.status ? " · " + t.status : "") }),
+          el("div", { text: t.name }),
+          el("div", { class: "meta", text: "Quelle: Amadeu Antonio Stiftung, Todesopfer rechter Gewalt" }),
+          el("div", null, [extLink(t.url, "Einzelseite der Stiftung")])
+        ]));
+      });
+    }
+    panel.appendChild(el("h2", { text: "Fälle (" + fmt(mine.length) + ")" }));
+    panel.appendChild(el("button", { type: "button", text: "Gemeinde abwählen" })).onclick = function () { F.focus = null; delete F.ags[ags]; update(); };
+    mine.slice(0, 50).forEach(function (c) {
+      var links = urlsOf(c.urls).slice(0, 3).map(function (u, i) { return extLink(u, "Quelle " + (i + 1)); });
+      panel.appendChild(el("div", { class: "case" }, [
+        el("div", { class: "meta", text: deDate(c.date) + " · " + c.kategorie }),
+        el("div", { text: c.beschreibung }),
+        el("div", { class: "meta", text: c.quelle || "Quelle nicht angegeben" }),
+        links.length ? el("div", null, links) : null
+      ]));
+    });
+    if (mine.length > 50) panel.appendChild(el("p", { class: "muted", text: "… und " + fmt(mine.length - 50) + " weitere, siehe Einzelfälle." }));
+  }
+
+  // ---------- Todesopfer ----------
+  function initTO() {
+    var sel = document.getElementById("to-land"), seen = {};
+    TO.forEach(function (t) { seen[t.land] = 1; });
+    Object.keys(seen).sort().forEach(function (l) { sel.appendChild(el("option", { text: l })); });
+    ["to-land", "to-status"].forEach(function (id) { document.getElementById(id).onchange = function () { TOLIM = 60; renderTO(); }; });
+    document.getElementById("to-q").oninput = function () { TOLIM = 60; renderTO(); };
+  }
+  function renderTO() {
+    var land = document.getElementById("to-land").value, st = document.getElementById("to-status").value,
+        q = document.getElementById("to-q").value.trim().toLowerCase();
+    var list = TO.filter(function (t) {
+      if (land && t.land !== land) return false;
+      if (st && t.status !== st) return false;
+      if (q && (t.name + " " + t.ort).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+    document.getElementById("to-count").textContent = fmt(list.length) + " von " + fmt(TO.length) + " Einträgen";
+    var tb = document.getElementById("to-body");
+    tb.textContent = "";
+    list.slice(0, TOLIM).forEach(function (t) {
+      tb.appendChild(el("tr", null, [
+        el("td", { text: deDate(t.datum) }), el("td", { text: t.ort }), el("td", { text: t.land }), el("td", { text: t.name }),
+        el("td", { class: "num", text: t.alter || "–" }), el("td", { text: t.status || "–" }),
+        el("td", null, [extLink(t.url, "Stiftung, Einzelseite")])
+      ]));
+    });
+    var more = document.getElementById("to-more");
+    more.textContent = "";
+    if (list.length > TOLIM) {
+      var b = el("button", { type: "button", text: "Weitere anzeigen" });
+      b.onclick = function () { TOLIM += 60; renderTO(); };
+      more.appendChild(b);
+    }
+  }
+
+  function hasStats(s) { return !!(s && (s.ewz_2006 || s.maenner || s.frauen || s.straftaten || s.deutsche || s.bildung || s.erwerb || s.wahlen)); }
+
+  // ---------- Vergleichstabelle ----------
+  function pairCell(obj, key, pctKey) {
+    if (!obj || !obj[key]) return "–";
+    return fmt(obj[key]) + " / " + (obj[pctKey] == null ? "–" : fmtPct(obj[pctKey]));
+  }
+  function renderStatTable(shown) {
+    var body = document.getElementById("stat-body");
+    body.textContent = "";
+    var ags = Object.keys(shown).sort(function (a, b) { return shown[b] - shown[a]; }).slice(0, 60);
+    var anyStat = Object.keys(STAT).length > 0;
+    document.getElementById("stat-note").textContent = anyStat
+      ? "Die ersten 60 Gemeinden nach Fallzahl. Quellen: Einwohner, Männer/Frauen: Destatis Gemeindeverzeichnis (31.12.2025). Deutsche/Ausländer: Zensus 2022, Tab. 1000A-1019. Erwerbslose: Zensus 2022, Tab. 2000S-1001. Berufsabschluss: Zensus 2022, Tab. 2000S-1003 (Gebietsstand 15.05.2022, nur Gemeinden, die der Zensus ausweist, gerundet). Straftaten, ältere Wahlen: noch nicht eingespielt. Leere Felder: keine Daten."
+      : "Die Vergleichsdaten der Statistischen Ämter (Geschlecht, Straftaten, Entwicklung seit 2006, Deutsche, Wahlen) sind noch nicht eingespielt. Die Spalten bleiben leer, bis die Daten vorliegen.";
+    ags.forEach(function (a) {
+      var s = STAT[a] || {};
+      var f = GEO.features.find(function (x) { return x.properties.ags === a; }).properties;
+      var c = shown[a];
+      var rate = f.ewz ? (c / f.ewz * 100000) : null;
+      var dev = (s.straftaten && s.straftaten_2006) ? fmtPct((s.straftaten.abs - s.straftaten_2006) / s.straftaten_2006 * 100) : "–";
+      var mw = s.maenner && s.frauen ? fmtPct(s.maenner.pct) + " / " + fmtPct(s.frauen.pct) : "–";
+      var nameCell = el("td", null, [el("button", { type: "button", style: "min-height:0;padding:2px 6px;border:none;background:none;color:var(--accent);text-decoration:underline", text: f.name })]);
+      nameCell.firstChild.onclick = function () { F.focus = a; F.ags[a] = true; update(); };
+      body.appendChild(el("tr", null, [
+        nameCell,
+        el("td", { text: f.land }),
+        el("td", { class: "num", text: fmt(f.ewz) }),
+        el("td", { class: "num", text: fmt(c) }),
+        el("td", { class: "num", text: rate == null ? "k. A." : fmtPct(rate).replace(" %", "") }),
+        el("td", { class: "num", text: s.erwerb && s.erwerb.erwerbslose ? fmt(s.erwerb.erwerbslose.abs) + " / " + (s.erwerb.erwerbslosenquote == null ? "–" : fmtPct(s.erwerb.erwerbslosenquote)) : "–" }),
+        el("td", { class: "num", text: mw }),
+        el("td", { class: "num", text: s.straftaten ? fmt(s.straftaten.abs) + " / " + fmtPct(s.straftaten.je100k) : "–" }),
+        el("td", { class: "num", text: dev }),
+        el("td", { class: "num", text: s.deutsche ? fmt(s.deutsche.abs) + " / " + fmtPct(s.deutsche.pct) : "–" }),
+        el("td", { class: "num", text: s.auslaender ? fmt(s.auslaender.abs) + " / " + fmtPct(s.auslaender.pct) : "–" }),
+        el("td", { class: "num", text: s.bildung && s.bildung.ohne ? fmt(s.bildung.ohne.abs) + " / " + fmtPct(s.bildung.ohne.pct) : "–" })
+      ]));
+    });
+  }
+
+  // ---------- Einzelfälle ----------
+  function renderTable(list) {
+    var tb = document.getElementById("tbody");
+    tb.textContent = "";
+    list.slice(0, F.limit).forEach(function (c) {
+      var links = urlsOf(c.urls).slice(0, 2).map(function (u, i) { return extLink(u, "Quelle " + (i + 1)); });
+      tb.appendChild(el("tr", null, [
+        el("td", { class: "num", text: deDate(c.date) }),
+        el("td", { text: c.gemeinde }),
+        el("td", { text: c.kategorie }),
+        el("td", { text: c.beschreibung }),
+        el("td", null, [document.createTextNode(c.quelle || "–")].concat(links.length ? [document.createElement("br")].concat(links) : []))
+      ]));
+    });
+    var more = document.getElementById("more-wrap");
+    more.textContent = "";
+    if (list.length > F.limit) {
+      var b = el("button", { type: "button", text: "Mehr anzeigen (" + fmt(list.length - F.limit) + " weitere)" });
+      b.onclick = function () { F.limit += 100; renderTable(list); };
+      more.appendChild(b);
+    }
+  }
+
+  // ---------- Aktualisierung ----------
+  function update() {
+    var base = CASES.filter(baseOk);
+    counts = {};
+    base.forEach(function (c) { counts[c.ags] = (counts[c.ags] || 0) + 1; });
+    computeClasses();
+    var list = base.filter(function (c) {
+      if (!hasKeys(F.klassen)) return true;
+      return !!F.klassen[String(classOfAgs[c.ags])];
+    });
+    var shown = {};
+    list.forEach(function (c) { shown[c.ags] = (shown[c.ags] || 0) + 1; });
+    var gems = Object.keys(shown), max = 0, maxAgs = null;
+    gems.forEach(function (a) { if (shown[a] > max) { max = shown[a]; maxAgs = a; } });
+    document.getElementById("s-faelle").textContent = fmt(list.length);
+    document.getElementById("s-gem").textContent = fmt(gems.length);
+    document.getElementById("s-max").textContent = maxAgs ? fmt(max) + " (" + ags2name[maxAgs] + ")" : "–";
+
+    polyLayer.setStyle(styleFor);
+    drawMarkers(shown);
+    drawLegend();
+    renderChips();
+    renderTable(list);
+    renderStatTable(shown);
+    renderPanel(list);
+  }
+})();
+</script>
+</body>
+</html>
