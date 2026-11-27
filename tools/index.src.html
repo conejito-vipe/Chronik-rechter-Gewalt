@@ -281,9 +281,13 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     <div class="card tablewrap"><table><thead><tr><th>#</th><th>Gemeinde</th><th>Land</th><th class="num">Einwohner</th><th class="num">Fälle</th><th class="num">Todesopfer</th><th class="num">Fälle je 100.000 EW</th></tr></thead><tbody id="aw-abs-body"></tbody></table></div>
 
     <h2>Wahlergebnisse</h2>
-    <div class="card">
+    <div class="card" style="margin-bottom:28px">
       <p class="note">Bundestagswahl 2025, Zweitstimmen. Gemeinden gelten für ihren Wahlkreis. Für das Gebiet: Mittel der Wahlkreise, gewichtet nach Wählerinnen und Wählern.</p>
-      <div class="tablewrap"><table><thead><tr><th>Partei</th><th class="num">Anteil im Gebiet</th></tr></thead><tbody id="aw-wahl-body"></tbody></table></div>
+      <canvas id="aw-wahl-chart"></canvas>
+      <p class="note" style="margin-top:10px"><b>Was man sieht:</b> Jeder Balken ist der Zweitstimmen-Anteil einer Partei im gewählten Gebiet. Die stärkste Partei steht oben. <b>Wozu es dient:</b> Es zeigt das politische Umfeld des Gebiets, damit die Fallzahlen in Relation zu den Wahlergebnissen gelesen werden können. Ein Zusammenhang sagt nichts über Ursachen aus.</p>
+      <details><summary class="note">Zahlen als Tabelle</summary>
+        <div class="tablewrap"><table><thead><tr><th>Partei</th><th class="num">Anteil im Gebiet</th></tr></thead><tbody id="aw-wahl-body"></tbody></table></div>
+      </details>
     </div>
 
     <h2>Zusammenhänge mit Wahlergebnissen</h2>
@@ -349,6 +353,14 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
   function urlsOf(s) {
     if (!s) return [];
     return s.split(/\s*[;|]\s*|\s+(?=https?:\/\/)/).filter(function (u) { return /^https?:\/\//.test(u); });
+  }
+  // Quellenname ist der Link (erste URL); weitere URLs als "Quelle 2", "Quelle 3"
+  function sourceNodes(c) {
+    var us = urlsOf(c.urls).slice(0, 3);
+    if (!us.length) return [document.createTextNode(c.quelle || "Quelle nicht angegeben")];
+    var out = [extLink(us[0], c.quelle || "Quelle")];
+    us.slice(1).forEach(function (u, i) { out.push(document.createTextNode(" · ")); out.push(extLink(u, "Quelle " + (i + 2))); });
+    return out;
   }
   function extLink(href, text) {
     return el("a", { href: href, target: "_blank", rel: "noopener noreferrer", text: text });
@@ -788,12 +800,10 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     panel.appendChild(el("h2", { text: "Fälle (" + fmt(mine.length) + ")" }));
     panel.appendChild(el("button", { type: "button", text: "Gemeinde abwählen" })).onclick = function () { F.focus = null; delete F.ags[ags]; update(); };
     mine.slice(0, 50).forEach(function (c) {
-      var links = urlsOf(c.urls).slice(0, 3).map(function (u, i) { return extLink(u, "Quelle " + (i + 1)); });
       panel.appendChild(el("div", { class: "case" }, [
         el("div", { class: "meta", text: deDate(c.date) + " · " + c.kategorie }),
         el("div", { text: c.beschreibung }),
-        el("div", { class: "meta", text: c.quelle || "Quelle nicht angegeben" }),
-        links.length ? el("div", null, links) : null
+        el("div", { class: "meta" }, sourceNodes(c))
       ]));
     });
     if (mine.length > 50) panel.appendChild(el("p", { class: "muted", text: "… und " + fmt(mine.length - 50) + " weitere, siehe Einzelfälle." }));
@@ -881,13 +891,12 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     var tb = document.getElementById("tbody");
     tb.textContent = "";
     list.slice(0, F.limit).forEach(function (c) {
-      var links = urlsOf(c.urls).slice(0, 2).map(function (u, i) { return extLink(u, "Quelle " + (i + 1)); });
       tb.appendChild(el("tr", null, [
         el("td", { class: "num", text: deDate(c.date) }),
         el("td", { text: c.gemeinde }),
         el("td", { text: c.kategorie }),
         el("td", { text: c.beschreibung }),
-        el("td", null, [document.createTextNode(c.quelle || "–")].concat(links.length ? [document.createElement("br")].concat(links) : []))
+        el("td", null, sourceNodes(c))
       ]));
     });
     var more = document.getElementById("more-wrap");
@@ -1045,6 +1054,10 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     });
     var rows = parties.map(function (p) { return { p: p, v: sumW && acc[p] != null ? acc[p] / sumW : null }; })
       .filter(function (r) { return r.v != null; }).sort(function (a, b) { return b.v - a.v; });
+    if (typeof Chart !== "undefined" && document.getElementById("aw-wahl-chart")) {
+      if (window.__awWahl) window.__awWahl.destroy();
+      window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "bar", data: { labels: rows.map(function (r) { return r.p; }), datasets: [{ label: "Anteil im Gebiet (%)", data: rows.map(function (r) { return r.v; }), backgroundColor: rows.map(function (r) { return r.p === "AfD" ? "#b23a48" : "#8d99ae"; }) }] }, options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "Anteil an den Zweitstimmen (%)" } } } } });
+    }
     tb.innerHTML = rows.map(function (r) { return "<tr><td>" + escH(r.p) + "</td><td class=\"num\">" + r.v.toLocaleString("de-DE", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + " %</td></tr>"; }).join("");
     // Zusammenhänge: Gemeinden mit Fällen (ranked) gegen Parteianteil
     function pp(ags, p) { var k = gwk[ags]; return k && wk[k] && wk[k].parteien[p] ? wk[k].parteien[p].pct : null; }
