@@ -283,8 +283,8 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     <h2>Wahlergebnisse</h2>
     <div class="card" style="margin-bottom:28px">
       <p class="note">Bundestagswahl 2025, Zweitstimmen. Gemeinden gelten für ihren Wahlkreis. Für das Gebiet: Mittel der Wahlkreise, gewichtet nach Wählerinnen und Wählern.</p>
-      <canvas id="aw-wahl-chart"></canvas>
-      <p class="note" style="margin-top:10px"><b>Was man sieht:</b> Jeder Balken ist der Zweitstimmen-Anteil einer Partei im gewählten Gebiet. Die stärkste Partei steht oben. <b>Wozu es dient:</b> Es zeigt das politische Umfeld des Gebiets, damit die Fallzahlen in Relation zu den Wahlergebnissen gelesen werden können. Ein Zusammenhang sagt nichts über Ursachen aus.</p>
+      <div id="aw-wahl-wrap" style="position:relative;height:420px"><canvas id="aw-wahl-chart"></canvas></div>
+      <p class="note" style="margin-top:10px"><b>Was man sieht:</b> Jeder Balken ist der Zweitstimmen-Anteil einer Partei im gewählten Gebiet. Die stärkste Partei steht oben. Rot markiert sind die rechten Parteien: AfD, BÜNDNIS DEUTSCHLAND und WerteUnion. Diese Einordnung ist eine Setzung und im Code änderbar (Liste RECHTE_PARTEIEN). <b>Wozu es dient:</b> Es zeigt das politische Umfeld des Gebiets, damit die Fallzahlen in Relation zu den Wahlergebnissen gelesen werden können. Ein Zusammenhang sagt nichts über Ursachen aus.</p>
       <details><summary class="note">Zahlen als Tabelle</summary>
         <div class="tablewrap"><table><thead><tr><th>Partei</th><th class="num">Anteil im Gebiet</th></tr></thead><tbody id="aw-wahl-body"></tbody></table></div>
       </details>
@@ -1037,6 +1037,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     if (hasKeys(AF.ags)) active.push("Gemeinde-Auswahl");
     document.getElementById("aw-status").textContent = active.length ? "Aktive Filter: " + active.join(", ") + "." : "Keine Filter aktiv. Mit „Filter von Karte übernehmen“ werden die Einstellungen der Karte kopiert.";
   }
+  var RECHTE_PARTEIEN = ["AfD", "BÜNDNIS DEUTSCHLAND", "WerteUnion"];
   function renderWahl(ranked, gwk, wk) {
     var tb = document.getElementById("aw-wahl-body"), zb = document.getElementById("aw-zus-body");
     if (!tb || !zb || !gwk || !wk) return;
@@ -1056,7 +1057,9 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       .filter(function (r) { return r.v != null; }).sort(function (a, b) { return b.v - a.v; });
     if (typeof Chart !== "undefined" && document.getElementById("aw-wahl-chart")) {
       if (window.__awWahl) window.__awWahl.destroy();
-      window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "bar", data: { labels: rows.map(function (r) { return r.p; }), datasets: [{ label: "Anteil im Gebiet (%)", data: rows.map(function (r) { return r.v; }), backgroundColor: rows.map(function (r) { return r.p === "AfD" ? "#b23a48" : "#8d99ae"; }) }] }, options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "Anteil an den Zweitstimmen (%)" } } } } });
+      var wrap = document.getElementById("aw-wahl-wrap");
+      if (wrap) wrap.style.height = Math.max(240, rows.length * 30 + 80) + "px";
+      window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "bar", data: { labels: rows.map(function (r) { return r.p; }), datasets: [{ label: "Anteil im Gebiet (%)", data: rows.map(function (r) { return r.v; }), backgroundColor: rows.map(function (r) { return RECHTE_PARTEIEN.indexOf(r.p) >= 0 ? "#b23a48" : "#8d99ae"; }) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { autoSkip: false, font: { size: 12 } } }, x: { title: { display: true, text: "Anteil an den Zweitstimmen (%)" } } } } });
     }
     tb.innerHTML = rows.map(function (r) { return "<tr><td>" + escH(r.p) + "</td><td class=\"num\">" + r.v.toLocaleString("de-DE", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + " %</td></tr>"; }).join("");
     // Zusammenhänge: Gemeinden mit Fällen (ranked) gegen Parteianteil
