@@ -764,6 +764,8 @@ select, input, textarea { font-size: 16px; }
     }
     var cls = classOfAgs[p.ags];
     var col = cls === "na" ? NA_COL : (cls == null ? null : PALETTE[cls]);
+    // Klick auf eine Einfärbung in der Legende: nur Gemeinden dieser Stufe(n) einfärben
+    if (hasKeys(F.klassen) && cls != null && !F.klassen[String(cls)]) col = null;
     var sel = F.focus === p.ags || F.ags[p.ags];
     return {
       weight: sel ? 1.4 : 0.35,
