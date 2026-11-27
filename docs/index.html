@@ -1541,6 +1541,10 @@ select, input, textarea { font-size: 16px; }
     box.appendChild(el("span", { class: "muted", text: "Einfärbung (" + unit + "):" }));
     var used = {};
     Object.keys(classOfAgs).forEach(function (a) { if (classOfAgs[a] != null) used[classOfAgs[a]] = true; });
+    var allOn = !Object.keys(F.klassen).length;
+    var bAll = el("button", { type: "button", "aria-pressed": allOn ? "true" : "false" }, [document.createTextNode("Alle")]);
+    bAll.onclick = function () { if (allOn) return; F.klassen = {}; F.limit = 100; update(); };
+    box.appendChild(bAll);
     [0, 1, 2, 3, 4].forEach(function (i) {
       if (!used[i] || !breaks.length) return;
       var on = !!F.klassen[String(i)];
