@@ -762,12 +762,31 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
 .lbl-land { font-size: 11px; font-weight: 400; letter-spacing: 0.03em; width: 120px; text-align: center; white-space: normal; line-height: 1.25; opacity: 0.9; cursor: pointer; }
 .lbl-stadt { font-size: 12px; font-weight: 500; }
 .lbl:focus-visible { outline: 2px solid var(--accent); }
+
+.tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); margin: 12px 0 14px; }
+.tabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 14px; font: inherit; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+.view[hidden] { display: none; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 10px 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi b { display: block; font-size: 22px; color: var(--accent); }
+.kpi span, .note { color: var(--muted); font-size: 13px; }
+.view ul { padding-left: 18px; margin: 6px 0; }
+.view li { margin: 4px 0; }
+.view canvas { max-height: 360px; }
+.view h3 { font-size: 16px; margin: 18px 0 6px; }
+.view td.num.strong { font-weight: 700; }
 </style>
 </head>
 <body>
 <main>
   <h1>Chronik rechter Gewalt: Karte und Statistik nach Gemeinden</h1>
   <p class="muted">Angriffe auf Geflüchtete und Unterkünfte in Deutschland, 2015 bis Februar 2017. Bereinigter Datenstand 26.11.2026.</p>
+  <nav class="tabs" role="tablist" aria-label="Ansicht">
+    <button type="button" role="tab" id="tab-karte" data-view="karte" aria-controls="view-karte" aria-selected="true">Karte</button>
+    <button type="button" role="tab" id="tab-auswertung" data-view="auswertung" aria-controls="view-auswertung" aria-selected="false">Auswertung</button>
+  </nav>
+  <div class="view" id="view-karte" role="tabpanel" aria-labelledby="tab-karte">
 
   <div class="notice" role="note">
     <strong>Zum Schutz der Unterkünfte:</strong> Die Karte zeigt nur die Gemeinde. Die Punkte liegen im Inneren der Gemeinde und markieren nicht den genauen Ort des Vorfalls. Straßennamen sind aus den Beschreibungen entfernt.
@@ -870,6 +889,47 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     <p class="muted" id="to-more" style="margin-top:8px"></p>
   </section>
 
+  </div>
+
+  <div class="view" id="view-auswertung" role="tabpanel" aria-labelledby="tab-auswertung" hidden>
+
+<p class="note">Basis: faelle.json, Stand 27.11.2026. Propaganda/Volksverhetzung (238 Einträge) ist nicht als Straftat gezählt und nicht enthalten.</p>
+<div class="card kpis">
+<div class="kpi"><b>5.480</b><span>Straftaten gesamt 2002–2026 (national)</span></div>
+<div class="kpi"><b>2.579</b><span>davon Brandenburg</span></div>
+<div class="kpi"><b>242</b><span>Todesopfer-Fälle (als Fälle gezählt)</span></div>
+<div class="kpi"><b>1407</b><span>Gemeinden mit mindestens einem Fall</span></div>
+</div>
+<h2>Zeitliche Entwicklung</h2>
+<div class="card"><canvas id="ch1"></canvas><p class="note">Gestapelt nach Kategorie, national. Schwarze Linie: nur Brandenburg.</p></div>
+<div class="card"><ul>
+<li><b>2015 und 2016 sind die klaren Ausreißer:</b> 1.273 bzw. 1.871 Fälle. Der Mittelwert 2002–2014 liegt bei rund 87 Fällen pro Jahr (Streuung ±36), also rund 33 bzw. 50 Standardabweichungen darüber.</li>
+<li><b>2003–2007:</b> jeweils 123 bis 133 Fälle, danach Rückgang bis 2014.</li>
+<li><b>Nach 2016:</b> 69 bis 147 Fälle pro Jahr, mit kleineren Anstiegen 2023 (147) und 2025 (138).</li>
+<li><b>2015–2016</b> wird fast vollständig von Angriffen auf Unterkünfte und Geflüchtete getragen. Die Opferperspektive-Daten für 2015–2017 wurden nachimportiert. Ein Teil des Anstiegs kann deshalb auf die Erfassung zurückgehen, nicht allein auf das Tatgeschehen.</li>
+</ul></div>
+<h2>Statistische Auffälligkeiten und Zusammenhänge</h2>
+<div class="card"><ul>
+<li><b>Angriffe auf Unterkünfte und Angriffe auf Geflüchtete</b> verlaufen über die Jahre praktisch parallel (r = 0,98). Die beiden Kategorien sind nicht unabhängig.</li>
+<li><b>Körperverletzung und Tätlicher Übergriff</b> korrelieren moderat (r = 0,66). Die Abgrenzung ist in der Erfassung teils Ermessenssache.</li>
+<li><b>Kleine Gemeinden stehen oben in der Rate.</b> Bei wenigen Einwohnern reicht ein Fall für einen hohen Wert. Rangkorrelation Rate ~ Einwohnerzahl: ρ = -0,81. Deshalb nur Gemeinden mit mindestens 3 Fällen in der Rangliste.</li>
+<li><b>AfD-Zweitstimmen-Quote (Bundestagswahl 2025):</b> ρ = 0,56 über 366 Gemeinden mit mindestens 3 Fällen. Das ist ein Zusammenhang, keine Ursache. Die Quote gilt für den ganzen Wahlkreis, nicht für die einzelne Gemeinde (Näherung aus wahl.json).</li>
+<li><b>Brandenburg</b> hat rund 47 % aller Fälle und stellt damit einen deutlich überproportionalen Anteil. Die Rate-Rangliste wird von Brandenburger Gemeinden dominiert.</li>
+</ul></div>
+<h2>Gewichtung pro Gemeinde</h2>
+<div class="card">
+<p><b>Definition:</b> Fälle je 10.000 Einwohner (Einwohnerzahl aus gemeinden.geojson). Rangliste nur für Gemeinden mit mindestens 3 Fällen. Verteilung dort: Median 2,53, oberes Quartil 7,39 Fälle je 10.000 EW.</p>
+<p class="note">Todesopfer sind in den Fallzahlen enthalten. Eine Gewichtung nach Schwere ist noch nicht umgesetzt.</p>
+</div>
+<h3>Brandenburg: Rangliste nach Rate (mind. 3 Fälle)</h3>
+<div class="card tablewrap"><table><thead><tr><th>#</th><th>Gemeinde</th><th>Land</th><th>Einwohner</th><th>Fälle</th><th>Todesopfer</th><th>Fälle je 10.000 EW</th></tr></thead><tbody><tr><td>1</td><td>Flieth-Stegelitz</td><td>Brandenburg</td><td class="num">500</td><td class="num">3</td><td class="num">0</td><td class="num strong">60,0</td></tr><tr><td>2</td><td>Prenzlau</td><td>Brandenburg</td><td class="num">18.779</td><td class="num">83</td><td class="num">0</td><td class="num strong">44,2</td></tr><tr><td>3</td><td>Unterspreewald</td><td>Brandenburg</td><td class="num">727</td><td class="num">3</td><td class="num">0</td><td class="num strong">41,3</td></tr><tr><td>4</td><td>Templin</td><td>Brandenburg</td><td class="num">15.532</td><td class="num">57</td><td class="num">0</td><td class="num strong">36,7</td></tr><tr><td>5</td><td>Guben</td><td>Brandenburg</td><td class="num">15.613</td><td class="num">52</td><td class="num">1</td><td class="num strong">33,3</td></tr><tr><td>6</td><td>Schönwald</td><td>Brandenburg</td><td class="num">1.251</td><td class="num">4</td><td class="num">0</td><td class="num strong">32,0</td></tr><tr><td>7</td><td>Spremberg</td><td>Brandenburg</td><td class="num">20.900</td><td class="num">66</td><td class="num">0</td><td class="num strong">31,6</td></tr><tr><td>8</td><td>Premnitz</td><td>Brandenburg</td><td class="num">7.966</td><td class="num">24</td><td class="num">0</td><td class="num strong">30,1</td></tr><tr><td>9</td><td>Cottbus</td><td>Brandenburg</td><td class="num">95.140</td><td class="num">272</td><td class="num">2</td><td class="num strong">28,6</td></tr><tr><td>10</td><td>Wittstock/Dosse</td><td>Brandenburg</td><td class="num">13.642</td><td class="num">36</td><td class="num">1</td><td class="num strong">26,4</td></tr><tr><td>11</td><td>Rathenow</td><td>Brandenburg</td><td class="num">24.761</td><td class="num">65</td><td class="num">0</td><td class="num strong">26,3</td></tr><tr><td>12</td><td>Oderberg</td><td>Brandenburg</td><td class="num">1.948</td><td class="num">5</td><td class="num">0</td><td class="num strong">25,7</td></tr><tr><td>13</td><td>Neupetershain</td><td>Brandenburg</td><td class="num">1.174</td><td class="num">3</td><td class="num">0</td><td class="num strong">25,6</td></tr><tr><td>14</td><td>Wittenberge</td><td>Brandenburg</td><td class="num">16.928</td><td class="num">42</td><td class="num">1</td><td class="num strong">24,8</td></tr><tr><td>15</td><td>Bad Belzig</td><td>Brandenburg</td><td class="num">11.109</td><td class="num">27</td><td class="num">1</td><td class="num strong">24,3</td></tr><tr><td>16</td><td>Neuruppin</td><td>Brandenburg</td><td class="num">31.887</td><td class="num">77</td><td class="num">1</td><td class="num strong">24,1</td></tr><tr><td>17</td><td>Küstriner Vorland</td><td>Brandenburg</td><td class="num">2.501</td><td class="num">6</td><td class="num">0</td><td class="num strong">24,0</td></tr><tr><td>18</td><td>Lindow (Mark)</td><td>Brandenburg</td><td class="num">2.931</td><td class="num">7</td><td class="num">0</td><td class="num strong">23,9</td></tr><tr><td>19</td><td>Bad Freienwalde (Oder)</td><td>Brandenburg</td><td class="num">11.750</td><td class="num">28</td><td class="num">0</td><td class="num strong">23,8</td></tr><tr><td>20</td><td>Hennigsdorf</td><td>Brandenburg</td><td class="num">26.602</td><td class="num">62</td><td class="num">0</td><td class="num strong">23,3</td></tr><tr><td>21</td><td>Gransee</td><td>Brandenburg</td><td class="num">5.828</td><td class="num">13</td><td class="num">0</td><td class="num strong">22,3</td></tr><tr><td>22</td><td>Pritzwalk</td><td>Brandenburg</td><td class="num">11.801</td><td class="num">26</td><td class="num">0</td><td class="num strong">22,0</td></tr><tr><td>23</td><td>Gerswalde</td><td>Brandenburg</td><td class="num">1.431</td><td class="num">3</td><td class="num">0</td><td class="num strong">21,0</td></tr><tr><td>24</td><td>Angermünde</td><td>Brandenburg</td><td class="num">14.015</td><td class="num">29</td><td class="num">1</td><td class="num strong">20,7</td></tr><tr><td>25</td><td>Lübben (Spreewald)</td><td>Brandenburg</td><td class="num">13.992</td><td class="num">28</td><td class="num">0</td><td class="num strong">20,0</td></tr></tbody></table></div>
+<h3>National: Rangliste nach Rate (mind. 3 Fälle)</h3>
+<div class="card tablewrap"><table><thead><tr><th>#</th><th>Gemeinde</th><th>Land</th><th>Einwohner</th><th>Fälle</th><th>Todesopfer</th><th>Fälle je 10.000 EW</th></tr></thead><tbody><tr><td>1</td><td>Flieth-Stegelitz</td><td>Brandenburg</td><td class="num">500</td><td class="num">3</td><td class="num">0</td><td class="num strong">60,0</td></tr><tr><td>2</td><td>Prenzlau</td><td>Brandenburg</td><td class="num">18.779</td><td class="num">83</td><td class="num">0</td><td class="num strong">44,2</td></tr><tr><td>3</td><td>Unterspreewald</td><td>Brandenburg</td><td class="num">727</td><td class="num">3</td><td class="num">0</td><td class="num strong">41,3</td></tr><tr><td>4</td><td>Templin</td><td>Brandenburg</td><td class="num">15.532</td><td class="num">57</td><td class="num">0</td><td class="num strong">36,7</td></tr><tr><td>5</td><td>Cammin</td><td>Mecklenburg-Vorpommern</td><td class="num">853</td><td class="num">3</td><td class="num">0</td><td class="num strong">35,2</td></tr><tr><td>6</td><td>Guben</td><td>Brandenburg</td><td class="num">15.613</td><td class="num">52</td><td class="num">1</td><td class="num strong">33,3</td></tr><tr><td>7</td><td>Schönwald</td><td>Brandenburg</td><td class="num">1.251</td><td class="num">4</td><td class="num">0</td><td class="num strong">32,0</td></tr><tr><td>8</td><td>Spremberg</td><td>Brandenburg</td><td class="num">20.900</td><td class="num">66</td><td class="num">0</td><td class="num strong">31,6</td></tr><tr><td>9</td><td>Premnitz</td><td>Brandenburg</td><td class="num">7.966</td><td class="num">24</td><td class="num">0</td><td class="num strong">30,1</td></tr><tr><td>10</td><td>Cottbus</td><td>Brandenburg</td><td class="num">95.140</td><td class="num">272</td><td class="num">2</td><td class="num strong">28,6</td></tr><tr><td>11</td><td>Velgast</td><td>Mecklenburg-Vorpommern</td><td class="num">1.462</td><td class="num">4</td><td class="num">0</td><td class="num strong">27,4</td></tr><tr><td>12</td><td>Wittstock/Dosse</td><td>Brandenburg</td><td class="num">13.642</td><td class="num">36</td><td class="num">1</td><td class="num strong">26,4</td></tr><tr><td>13</td><td>Rathenow</td><td>Brandenburg</td><td class="num">24.761</td><td class="num">65</td><td class="num">0</td><td class="num strong">26,3</td></tr><tr><td>14</td><td>Oderberg</td><td>Brandenburg</td><td class="num">1.948</td><td class="num">5</td><td class="num">0</td><td class="num strong">25,7</td></tr><tr><td>15</td><td>Neupetershain</td><td>Brandenburg</td><td class="num">1.174</td><td class="num">3</td><td class="num">0</td><td class="num strong">25,6</td></tr><tr><td>16</td><td>Wittenberge</td><td>Brandenburg</td><td class="num">16.928</td><td class="num">42</td><td class="num">1</td><td class="num strong">24,8</td></tr><tr><td>17</td><td>Bad Belzig</td><td>Brandenburg</td><td class="num">11.109</td><td class="num">27</td><td class="num">1</td><td class="num strong">24,3</td></tr><tr><td>18</td><td>Neuruppin</td><td>Brandenburg</td><td class="num">31.887</td><td class="num">77</td><td class="num">1</td><td class="num strong">24,1</td></tr><tr><td>19</td><td>Küstriner Vorland</td><td>Brandenburg</td><td class="num">2.501</td><td class="num">6</td><td class="num">0</td><td class="num strong">24,0</td></tr><tr><td>20</td><td>Niederdorf</td><td>Sachsen</td><td class="num">1.254</td><td class="num">3</td><td class="num">0</td><td class="num strong">23,9</td></tr><tr><td>21</td><td>Lindow (Mark)</td><td>Brandenburg</td><td class="num">2.931</td><td class="num">7</td><td class="num">0</td><td class="num strong">23,9</td></tr><tr><td>22</td><td>Bad Freienwalde (Oder)</td><td>Brandenburg</td><td class="num">11.750</td><td class="num">28</td><td class="num">0</td><td class="num strong">23,8</td></tr><tr><td>23</td><td>Hennigsdorf</td><td>Brandenburg</td><td class="num">26.602</td><td class="num">62</td><td class="num">0</td><td class="num strong">23,3</td></tr><tr><td>24</td><td>Gransee</td><td>Brandenburg</td><td class="num">5.828</td><td class="num">13</td><td class="num">0</td><td class="num strong">22,3</td></tr><tr><td>25</td><td>Pritzwalk</td><td>Brandenburg</td><td class="num">11.801</td><td class="num">26</td><td class="num">0</td><td class="num strong">22,0</td></tr></tbody></table></div>
+<h3>Brandenburg: meiste Fälle absolut</h3>
+<div class="card tablewrap"><table><thead><tr><th>#</th><th>Gemeinde</th><th>Land</th><th>Einwohner</th><th>Fälle</th><th>Todesopfer</th><th>Fälle je 10.000 EW</th></tr></thead><tbody><tr><td>1</td><td>Cottbus</td><td>Brandenburg</td><td class="num">95.140</td><td class="num">272</td><td class="num">2</td><td class="num strong">28,6</td></tr><tr><td>2</td><td>Potsdam</td><td>Brandenburg</td><td class="num">185.137</td><td class="num">220</td><td class="num">0</td><td class="num strong">11,9</td></tr><tr><td>3</td><td>Frankfurt (Oder)</td><td>Brandenburg</td><td class="num">56.586</td><td class="num">109</td><td class="num">1</td><td class="num strong">19,3</td></tr><tr><td>4</td><td>Prenzlau</td><td>Brandenburg</td><td class="num">18.779</td><td class="num">83</td><td class="num">0</td><td class="num strong">44,2</td></tr><tr><td>5</td><td>Neuruppin</td><td>Brandenburg</td><td class="num">31.887</td><td class="num">77</td><td class="num">1</td><td class="num strong">24,1</td></tr><tr><td>6</td><td>Spremberg</td><td>Brandenburg</td><td class="num">20.900</td><td class="num">66</td><td class="num">0</td><td class="num strong">31,6</td></tr><tr><td>7</td><td>Rathenow</td><td>Brandenburg</td><td class="num">24.761</td><td class="num">65</td><td class="num">0</td><td class="num strong">26,3</td></tr><tr><td>8</td><td>Hennigsdorf</td><td>Brandenburg</td><td class="num">26.602</td><td class="num">62</td><td class="num">0</td><td class="num strong">23,3</td></tr><tr><td>9</td><td>Brandenburg an der Havel</td><td>Brandenburg</td><td class="num">73.945</td><td class="num">58</td><td class="num">1</td><td class="num strong">7,8</td></tr><tr><td>10</td><td>Templin</td><td>Brandenburg</td><td class="num">15.532</td><td class="num">57</td><td class="num">0</td><td class="num strong">36,7</td></tr><tr><td>11</td><td>Eberswalde</td><td>Brandenburg</td><td class="num">41.867</td><td class="num">55</td><td class="num">2</td><td class="num strong">13,1</td></tr><tr><td>12</td><td>Fürstenwalde/Spree</td><td>Brandenburg</td><td class="num">31.981</td><td class="num">55</td><td class="num">1</td><td class="num strong">17,2</td></tr><tr><td>13</td><td>Guben</td><td>Brandenburg</td><td class="num">15.613</td><td class="num">52</td><td class="num">1</td><td class="num strong">33,3</td></tr><tr><td>14</td><td>Königs Wusterhausen</td><td>Brandenburg</td><td class="num">39.590</td><td class="num">49</td><td class="num">5</td><td class="num strong">12,4</td></tr><tr><td>15</td><td>Strausberg</td><td>Brandenburg</td><td class="num">27.765</td><td class="num">48</td><td class="num">1</td><td class="num strong">17,3</td></tr></tbody></table></div>
+<p class="note">Methodik: Fallzahlen nach Erfassungsstand, nicht nach Tatstand. 2015–2017 mit Dubletten-Bereinigung aus der Opferperspektive-Chronik ergänzt. Kategorien teils heuristisch zugeordnet. Die Auswertung zeigt Zusammenhänge, keine Ursachen.</p>
+  </div>
+
   <footer class="footer">
     <p><strong>Quellen</strong> (öffnen sich in einem neuen Tab):</p>
     <ul>
@@ -887,6 +947,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
   </footer>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
  * (c) 2010-2023 Vladimir Agafonkin, (c) 2010-2011 CloudMade
@@ -1480,6 +1541,27 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     renderStatTable(shown);
     renderPanel(list);
   }
+
+  // ---------- Ansicht: Karte / Auswertung ----------
+  function initAwChart(){
+  if (window.__awChart || typeof Chart === "undefined") return;
+  var el = document.getElementById("ch1"); if (!el) return;
+  window.__awChart = new Chart(el, {type:"bar", data:{labels:[1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026], datasets:[{"label": "Angriffe auf Unterk\u00fcnfte", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 511, 623, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0], "backgroundColor": "#b23a48"}, {"label": "K\u00f6rperverletzung", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 65, 79, 75, 82, 80, 61, 52, 50, 32, 38, 16, 20, 126, 202, 24, 17, 12, 19, 13, 6, 6, 5, 9, 4], "backgroundColor": "#e07a5f"}, {"label": "Angriffe auf Gefl\u00fcchtete", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 359, 696, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], "backgroundColor": "#f2cc8f"}, {"label": "T\u00e4tlicher \u00dcbergriff", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 9, 14, 10, 11, 9, 5, 8, 3, 1, 3, 4, 22, 111, 192, 58, 56, 42, 40, 34, 39, 57, 39, 45, 17], "backgroundColor": "#81b29a"}, {"label": "Bedrohung", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 9, 4, 19, 14, 14, 4, 5, 12, 4, 8, 8, 9, 12, 8, 7, 9, 9, 5, 4, 7, 53, 38, 59, 49], "backgroundColor": "#3d405b"}, {"label": "Brandanschlag", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 15, 12, 5, 3, 9, 2, 7, 1, 3, 2, 4, 1, 125, 104, 8, 1, 4, 1, 4, 1, 1, 0, 0, 1], "backgroundColor": "#6d597a"}, {"label": "Sachbesch\u00e4digung", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 6, 5, 9, 10, 9, 6, 9, 3, 5, 2, 1, 17, 15, 25, 25, 13, 15, 14, 11, 17, 12, 17, 4], "backgroundColor": "#355070"}, {"label": "Todesopfer", "data": [6, 10, 28, 19, 11, 4, 17, 12, 3, 12, 16, 11, 4, 15, 3, 6, 3, 4, 5, 1, 2, 2, 4, 1, 2, 1, 11, 2, 2, 3, 11, 5, 0, 1, 4, 0, 1], "backgroundColor": "#99a8b2"}, {"label": "Sonstige", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 5, 5, 5, 7, 8, 0, 4, 3, 7, 3, 1, 11, 12, 9, 5, 6, 2, 4, 5, 12, 12, 8, 7], "backgroundColor": "#ccd5ae"}, {"label": "Verdachtsfall", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0], "backgroundColor": "#8d99ae"}].concat([{type:"line",label:"Brandenburg gesamt",data:[2, 3, 3, 2, 1, 0, 1, 5, 1, 1, 2, 2, 28, 109, 120, 119, 124, 129, 89, 78, 79, 46, 63, 37, 54, 193, 267, 122, 113, 86, 82, 77, 69, 146, 106, 138, 82],borderColor:"#1d1d1b",backgroundColor:"#1d1d1b",pointRadius:0,borderWidth:2,tension:.2}])}, options:{responsive:true, plugins:{legend:{position:"bottom",labels:{boxWidth:12}}}, scales:{x:{stacked:true}, y:{stacked:true}}}});
+}
+  function showView(name) {
+    var isAw = name === "auswertung";
+    document.getElementById("view-karte").hidden = isAw;
+    document.getElementById("view-auswertung").hidden = !isAw;
+    document.getElementById("tab-karte").setAttribute("aria-selected", String(!isAw));
+    document.getElementById("tab-auswertung").setAttribute("aria-selected", String(isAw));
+    if (isAw) initAwChart();
+    else if (typeof map !== "undefined" && map) setTimeout(function () { map.invalidateSize(); }, 0);
+    if (history.replaceState) history.replaceState(null, "", isAw ? "#auswertung" : "#karte");
+  }
+  document.querySelectorAll(".tabs [data-view]").forEach(function (b) {
+    b.addEventListener("click", function () { showView(b.getAttribute("data-view")); });
+  });
+  if (location.hash === "#auswertung") showView("auswertung");
 })();
 </script>
 </body>
