@@ -767,6 +767,9 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
 .tabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 14px; font: inherit; color: var(--muted); cursor: pointer; }
 .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
 .view[hidden], #f-land-wrap[hidden] { display: none !important; }
+.view-tabs { border-bottom: 0; gap: 10px; margin: 14px 0 16px; }
+.view-tabs button { font-size: 16px; font-weight: 600; padding: 10px 22px; border: 2px solid var(--accent); border-radius: 10px; background: var(--panel); color: var(--accent); border-bottom-width: 2px; }
+.view-tabs button[aria-selected="true"] { background: var(--accent); color: #fff; border-bottom-color: var(--accent); }
 .topbar { position: sticky; top: 0; z-index: 1000; display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
 .lang { display: inline-flex; }
 .lang button { font: inherit; font-size: 13px; font-weight: 600; min-width: 44px; padding: 6px 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
@@ -797,7 +800,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
 <main>
   <h1>Chronik rechter Gewalt: Karte und Statistik nach Gemeinden</h1>
   <p class="muted">Angriffe auf Geflüchtete und Unterkünfte in Deutschland, 2015 bis Februar 2017. Bereinigter Datenstand 26.11.2026.</p>
-  <nav class="tabs" role="tablist" aria-label="Ansicht">
+  <nav class="tabs view-tabs" role="tablist" aria-label="Ansicht">
     <button type="button" role="tab" id="tab-karte" data-view="karte" aria-controls="view-karte" aria-selected="true">Karte</button>
     <button type="button" role="tab" id="tab-auswertung" data-view="auswertung" aria-controls="view-auswertung" aria-selected="false">Auswertung</button>
   </nav>
@@ -953,6 +956,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       <div class="filters" style="margin-bottom:8px">
         <label>Von Jahr <select id="aw-von"></select></label>
         <label>Bis Jahr <select id="aw-bis"></select></label>
+        <label>Straftat <select id="aw-chart-kat"></select></label>
       </div>
       <canvas id="aw-chart"></canvas><p class="note" id="aw-chart-note">Gestapelt nach Straftat, für das gewählte Gebiet.</p></div>
 
@@ -1049,9 +1053,10 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     (children || []).forEach(function (c) { if (c) n.appendChild(c); });
     return n;
   }
-  function fmt(n) { return (n == null || isNaN(n)) ? "–" : Number(n).toLocaleString("de-DE"); }
-  function pct(n, d) { return (n == null || !d) ? "–" : (n / d * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " %"; }
-  function fmtPct(v) { return v == null || isNaN(v) ? "–" : Number(v).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " %"; }
+  function loc() { return typeof LANG !== "undefined" && LANG === "en" ? "en-US" : "de-DE"; }
+  function fmt(n) { return (n == null || isNaN(n)) ? "–" : Number(n).toLocaleString(loc()); }
+  function pct(n, d) { return (n == null || !d) ? "–" : (n / d * 100).toLocaleString(loc(), { maximumFractionDigits: 1 }) + " %"; }
+  function fmtPct(v) { return v == null || isNaN(v) ? "–" : Number(v).toLocaleString(loc(), { maximumFractionDigits: 1 }) + " %"; }
   function deDate(iso) { var p = (iso || "").split("-"); return p.length === 3 ? p[2] + "." + p[1] + "." + p[0] : (iso || ""); }
   function urlsOf(s) {
     if (!s) return [];
@@ -1691,18 +1696,21 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
   }
   function awTable(id, rows) {
     document.getElementById(id).innerHTML = rows.map(function (r, i) {
-      return "<tr><td>" + (i + 1) + "</td><td>" + escH(r.name) + "</td><td>" + escH(r.land) + "</td><td class=\"num\">" + fmt(r.ewz) + "</td><td class=\"num\">" + r.n + "</td><td class=\"num\">" + r.todes + "</td><td class=\"num strong\">" + Number(r.rate).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + "</td></tr>";
+      return "<tr><td>" + (i + 1) + "</td><td>" + escH(r.name) + "</td><td>" + escH(r.land) + "</td><td class=\"num\">" + fmt(r.ewz) + "</td><td class=\"num\">" + r.n + "</td><td class=\"num\">" + r.todes + "</td><td class=\"num strong\">" + Number(r.rate).toLocaleString(loc(), { maximumFractionDigits: 1 }) + "</td></tr>";
     }).join("");
   }
   function renderAW() {
     if (!CASES || !document.getElementById("aw-chart")) return;
     var list = CASES.filter(awOk);
+    var ckEl = document.getElementById("aw-chart-kat"), ck = ckEl ? ckEl.value : "";
     var byY = {}, byYC = {}, cats = {}, todes = 0;
     list.forEach(function (c) {
       var y = c.date.slice(0, 4);
-      byY[y] = (byY[y] || 0) + 1;
-      byYC[y] = byYC[y] || {}; byYC[y][c.kategorie] = (byYC[y][c.kategorie] || 0) + 1;
-      cats[c.kategorie] = 1;
+      if (!ck || c.kategorie === ck) {
+        byY[y] = (byY[y] || 0) + 1;
+        byYC[y] = byYC[y] || {}; byYC[y][c.kategorie] = (byYC[y][c.kategorie] || 0) + 1;
+        cats[c.kategorie] = 1;
+      }
       if (c.kategorie === "Todesopfer") todes++;
     });
     var years = Object.keys(byY).sort().filter(function (y) {
@@ -1715,7 +1723,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     document.getElementById("aw-k-todes").textContent = fmt(todes);
     document.getElementById("aw-k-gem").textContent = fmt(Object.keys(gemCount).length);
     var areaEw = 0; GEO.features.forEach(function (f) { var a = f.properties.ags; if (!AF.land || ags2land[a] === AF.land) areaEw += ags2ewz[a] || 0; });
-    document.getElementById("aw-k-rate").textContent = areaEw ? (list.length / areaEw * 100000).toLocaleString("de-DE", { maximumFractionDigits: 1 }) : "–";
+    document.getElementById("aw-k-rate").textContent = areaEw ? (list.length / areaEw * 100000).toLocaleString(loc(), { maximumFractionDigits: 1 }) : "–";
     var catKeys = Object.keys(cats).sort();
     var chartType = "bar", datasets, scalesOpt = { x: { stacked: true }, y: { stacked: true } };
     if (awMode === "total") {
@@ -1727,9 +1735,11 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     } else {
       datasets = catKeys.map(function (k, i) { return { label: k, data: years.map(function (y) { return (byYC[y] && byYC[y][k]) || 0; }), backgroundColor: AW_PAL[i % AW_PAL.length] }; });
     }
+    scalesOpt.y = Object.assign({}, scalesOpt.y, { ticks: { callback: function (v) { return Number(v).toLocaleString(loc()); } } });
+    var ttOpt = { callbacks: { label: function (ctx) { var v = ctx.parsed.y != null ? ctx.parsed.y : ctx.parsed; return ctx.dataset.label + ": " + Number(v).toLocaleString(loc()); } } };
     if (typeof Chart !== "undefined") {
       if (window.__awChart) window.__awChart.destroy();
-      window.__awChart = new Chart(document.getElementById("aw-chart"), { type: chartType, data: { labels: years, datasets: datasets }, options: { responsive: true, plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } } }, scales: scalesOpt } });
+      window.__awChart = new Chart(document.getElementById("aw-chart"), { type: chartType, data: { labels: years, datasets: datasets }, options: { responsive: true, plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } }, tooltip: ttOpt }, scales: scalesOpt } });
     }
     var noteEl = document.getElementById("aw-chart-note");
     if (noteEl) noteEl.textContent = awMode === "total" ? "Summe aller Fälle je Jahr, für das gewählte Gebiet." : awMode === "lines" ? "Eine Linie je Straftat, für das gewählte Gebiet." : "Gestapelt nach Straftat, für das gewählte Gebiet.";
@@ -1740,11 +1750,11 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     awTable("aw-abs-body", absAll.slice(0, 15));
     var corr = [];
     var rhoEw = awSpearman(ranked.map(function (r) { return r.rate; }), ranked.map(function (r) { return Math.log(r.ewz); }));
-    if (rhoEw !== null) corr.push("<li>Rate gegen Einwohnerzahl: ρ = " + rhoEw.toFixed(2).replace(".", ",") + ". Kleine Gemeinden haben bei wenigen Fällen hohe Raten.</li>");
+    if (rhoEw !== null) corr.push("<li>Rate gegen Einwohnerzahl: ρ = " + rhoEw.toFixed(2).replace(".", LANG === "en" ? "." : ",") + ". Kleine Gemeinden haben bei wenigen Fällen hohe Raten.</li>");
     var w = WAHL && WAHL["2025"], gwk = w && w.gemeinde_wk, wk = w && w.wk;
     var withAfd = ranked.map(function (r) { var k = gwk && gwk[r.ags], afd = k && wk && wk[k] && wk[k].parteien && wk[k].parteien.AfD ? wk[k].parteien.AfD.pct : null; return { rate: r.rate, afd: afd }; }).filter(function (p) { return p.afd != null; });
     var rhoAfd = awSpearman(withAfd.map(function (p) { return p.rate; }), withAfd.map(function (p) { return p.afd; }));
-    if (rhoAfd !== null) corr.push("<li>Rate gegen AfD-Zweitstimmen-Quote 2025 (Wahlkreis): ρ = " + rhoAfd.toFixed(2).replace(".", ",") + " über " + fmt(withAfd.length) + " Gemeinden.</li>");
+    if (rhoAfd !== null) corr.push("<li>Rate gegen AfD-Zweitstimmen-Quote 2025 (Wahlkreis): ρ = " + rhoAfd.toFixed(2).replace(".", LANG === "en" ? "." : ",") + " über " + fmt(withAfd.length) + " Gemeinden.</li>");
     document.getElementById("aw-corr").innerHTML = corr.length ? corr.join("") : "<li>Zu wenige Gemeinden in der Auswahl für Zusammenhänge.</li>";
     renderWahl(ranked, gwk, wk, awRows(list));
     var active = [];
@@ -1785,15 +1795,15 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
         c.getDatasetMeta(0).data.forEach(function (bar, i) {
           var r = rows[i]; if (!r) return;
           ctx.textAlign = "left";
-          ctx.fillText(r.v.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %", bar.x + 6, bar.y);
+          ctx.fillText(r.v.toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %", bar.x + 6, bar.y);
           ctx.textAlign = "right";
-          ctx.fillText(fmt(r.abs) + " Stimmen", c.chartArea.right + 110, bar.y);
+          ctx.fillText(fmt(r.abs) + (LANG === "en" ? " votes" : " Stimmen"), c.chartArea.right + 110, bar.y);
         });
         ctx.restore();
       } };
-      window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "bar", plugins: [labelPlugin], data: { labels: rows.map(function (r) { return r.p; }), datasets: [{ label: "Anteil im Gebiet (%)", data: rows.map(function (r) { return r.v; }), backgroundColor: rows.map(function (r) { return RECHTE_PARTEIEN.indexOf(r.p) >= 0 ? "#b23a48" : "#8d99ae"; }) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 120 } }, plugins: { legend: { display: false } }, scales: { y: { ticks: { autoSkip: false, font: { size: 12 } } }, x: { max: maxV * 1.1 + 1, title: { display: true, text: "Anteil an den Zweitstimmen (%)" } } } } });
+      window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "bar", plugins: [labelPlugin], data: { labels: rows.map(function (r) { return r.p; }), datasets: [{ label: "Anteil im Gebiet (%)", data: rows.map(function (r) { return r.v; }), backgroundColor: rows.map(function (r) { return RECHTE_PARTEIEN.indexOf(r.p) >= 0 ? "#b23a48" : "#8d99ae"; }) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 120 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (ctx) { return Number(ctx.parsed.x).toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %"; } } } }, scales: { y: { ticks: { autoSkip: false, font: { size: 12 } } }, x: { max: maxV * 1.1 + 1, title: { display: true, text: "Anteil an den Zweitstimmen (%)" } } } } });
     }
-    tb.innerHTML = rows.map(function (r) { return "<tr><td>" + escH(r.p) + "</td><td class=\"num\">" + r.v.toLocaleString("de-DE", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + " %</td><td class=\"num\">" + fmt(r.abs) + "</td></tr>"; }).join("");
+    tb.innerHTML = rows.map(function (r) { return "<tr><td>" + escH(r.p) + "</td><td class=\"num\">" + r.v.toLocaleString(loc(), { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + " %</td><td class=\"num\">" + fmt(r.abs) + "</td></tr>"; }).join("");
     // Zusammenhänge: Gemeinden mit Fällen (ranked) gegen Parteianteil
     function pp(ags, p) { var k = gwk[ags]; return k && wk[k] && wk[k].parteien[p] ? wk[k].parteien[p].pct : null; }
     var zus = parties.map(function (p) {
@@ -1803,7 +1813,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     }).filter(function (z) { return z.rho !== null && z.n >= 100; }).sort(function (a, b) { return Math.abs(b.rho) - Math.abs(a.rho); });
     zb.innerHTML = zus.map(function (z) {
       var st = Math.abs(z.rho) >= 0.5 ? "stark" : Math.abs(z.rho) >= 0.3 ? "mittel" : "schwach";
-      return "<tr><td>" + escH(z.p) + "</td><td class=\"num strong\">" + z.rho.toFixed(2).replace(".", ",") + "</td><td>" + st + (z.rho < 0 ? " (negativ)" : " (positiv)") + "</td><td class=\"num\">" + fmt(z.n) + "</td></tr>";
+      return "<tr><td>" + escH(z.p) + "</td><td class=\"num strong\">" + z.rho.toFixed(2).replace(".", LANG === "en" ? "." : ",") + "</td><td>" + st + (z.rho < 0 ? " (negativ)" : " (positiv)") + "</td><td class=\"num\">" + fmt(z.n) + "</td></tr>";
     }).join("") || "<tr><td colspan=\"4\">Zu wenige Gemeinden für Zusammenhänge.</td></tr>";
     // Streudiagramm AfD gegen Fallrate
     var wkN = {}, wkEW = {};
@@ -1814,7 +1824,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     });
     if (typeof Chart !== "undefined" && document.getElementById("aw-scatter")) {
       if (window.__awScatter) window.__awScatter.destroy();
-      window.__awScatter = new Chart(document.getElementById("aw-scatter"), { type: "scatter", data: { datasets: [{ label: "Wahlkreise", data: sc, backgroundColor: "#b23a48", pointRadius: 4 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "AfD-Zweitstimmen 2025 (Wahlkreis, %)" } }, y: { title: { display: true, text: "Fälle je 100.000 EW (Wahlkreis)" } } } } });
+      window.__awScatter = new Chart(document.getElementById("aw-scatter"), { type: "scatter", data: { datasets: [{ label: "Wahlkreise", data: sc, backgroundColor: "#b23a48", pointRadius: 4 }] }, options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (ctx) { return "AfD " + Number(ctx.raw.x).toLocaleString(loc(), { maximumFractionDigits: 1 }) + " % · " + Number(ctx.raw.y).toLocaleString(loc(), { maximumFractionDigits: 1 }) + " " + (LANG === "en" ? "cases per 100,000" : "Fälle je 100.000"); } } } }, scales: { x: { title: { display: true, text: "AfD-Zweitstimmen 2025 (Wahlkreis, %)" } }, y: { title: { display: true, text: "Fälle je 100.000 EW (Wahlkreis)" } } } } });
     }
   }
   function awSyncUI() {
@@ -1831,6 +1841,10 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     Object.keys(ags2land).forEach(function (a) { if (ags2land[a]) lands[ags2land[a]] = 1; });
     var jahre = {}; CASES.forEach(function (c) { jahre[c.date.slice(0, 4)] = 1; });
     var jsel = document.getElementById("aw-jahr"), lsel = document.getElementById("aw-land");
+    var csel = document.getElementById("aw-chart-kat");
+    csel.appendChild(el("option", { value: "", text: "Alle" }));
+    Object.keys(kats).sort().forEach(function (k) { csel.appendChild(el("option", { value: k, text: k })); });
+    csel.onchange = function () { renderAW(); };
     Object.keys(jahre).sort().reverse().forEach(function (y) { jsel.appendChild(el("option", { value: y, text: y })); });
     Object.keys(lands).sort().forEach(function (l) { lsel.appendChild(el("option", { value: l, text: l })); });
     var box = document.getElementById("aw-kat-chips");
