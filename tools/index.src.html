@@ -503,7 +503,7 @@ select, input, textarea { font-size: 16px; }
   var CITY_ZOOM = 7;
 
   // ---------- Daten ----------
-  var WH = null, WMAP = null, awWahlMode = "bar", TO = [], TOLIM = 60, CASES = [], GEO = null, LAND = null, STAT = {}, WAHL = {};
+  var WH = null, WG = null, WMAP = null, awWahlMode = "bar", TO = [], TOLIM = 60, CASES = [], GEO = null, LAND = null, STAT = {}, WAHL = {};
   var ags2name = {}, ags2land = {}, ags2ewz = {}, ags2rp = {};
 
   Promise.all([
@@ -524,7 +524,8 @@ select, input, textarea { font-size: 16px; }
     update();
     buildAwFilters();
     renderAW();
-    fetch("wahl_hist.json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (d) { WH = d; initWahlHist(); renderAW(); });
+    fetch("wahl_hist.json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (d) { WH = d;
+      return fetch("wahl_gem.json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (g) { WG = g; initWahlHist(); applyWahlMap(); renderAW(); }); });
   }).catch(function () {
     document.getElementById("panel").textContent = "Die Daten konnten nicht geladen werden. Bitte die Seite neu laden.";
   });
@@ -691,6 +692,7 @@ select, input, textarea { font-size: 16px; }
   }
 
   function tip(p) {
+    if (WMAP && WMAP.gem) { var wv = WMAP.vals[p.ags]; return p.name + " (" + p.land + ") · " + WMAP.label + " " + WMAP.y + ": " + (wv == null ? (LANG === "en" ? "no data" : "keine Daten") : pct1(wv) + " %"); }
     var c = counts[p.ags] || 0;
     var rate = p.ewz ? fmtPct(c / p.ewz * 100000).replace(" %", "") : "k. A.";
     return p.name + " (" + p.land + ") · " + fmt(c) + " Fälle" + (p.ewz ? " · " + rate + " pro 100.000 EW" : "") + (TOCNT[p.ags] ? " · " + fmt(TOCNT[p.ags]) + " Todesopfer" : "");
@@ -698,6 +700,11 @@ select, input, textarea { font-size: 16px; }
 
   function styleFor(f) {
     var p = f.properties;
+    if (WMAP && WMAP.gem) {
+      var wv = WMAP.vals[p.ags];
+      return { weight: 0.35, color: "#6f6a62", dashArray: "2 2", opacity: 0.8,
+        fillColor: wv == null ? NA_COL : wahlCol(wv / WMAP.max, WMAP.rechts), fillOpacity: wv == null ? 0.35 : 0.85 };
+    }
     var cls = classOfAgs[p.ags];
     var col = cls === "na" ? NA_COL : (cls == null ? null : PALETTE[cls]);
     var sel = F.focus === p.ags || F.ags[p.ags];
@@ -713,6 +720,7 @@ select, input, textarea { font-size: 16px; }
 
   function drawMarkers(shown) {
     markerLayer.clearLayers();
+    if (WMAP && WMAP.gem && map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
     GEO.features.forEach(function (f) {
       var p = f.properties;
       if (!toVisible(p.ags)) return;
@@ -1340,12 +1348,23 @@ select, input, textarea { font-size: 16px; }
       });
     }
   }
+  function wahlCol(t, rechts) {
+    var c1 = rechts ? [178, 58, 72] : [47, 111, 191];
+    t = Math.max(0, Math.min(1, t || 0));
+    return "rgb(" + c1.map(function (c) { return Math.round(245 + (c - 245) * t); }).join(",") + ")";
+  }
+  function wahlYears() {
+    var ys = {};
+    if (WH && WH.jahre) Object.keys(WH.jahre).forEach(function (y) { ys[y] = 1; });
+    if (WG && WG.jahre) Object.keys(WG.jahre).forEach(function (y) { ys[y] = 1; });
+    return Object.keys(ys).sort().reverse();
+  }
+  function wahlIsGem(y) { return !!(WG && WG.jahre && WG.jahre[y]); }
   function initWahlHist() {
-    if (!WH || !WH.jahre) return;
-    var yrs = Object.keys(WH.jahre).sort().reverse();
+    var yrs = wahlYears();
     var mj = document.getElementById("m-wahl-jahr"), aj = document.getElementById("aw-wahl-jahr"), mp = document.getElementById("m-wahl-partei");
-    if (aj) { aj.innerHTML = ""; yrs.forEach(function (y) { aj.appendChild(el("option", { value: y, text: y })); }); aj.value = "2025"; aj.onchange = function () { renderAW(); }; }
-    if (mj) { yrs.forEach(function (y) { mj.appendChild(el("option", { value: y, text: y })); }); mj.onchange = function () { fillWahlParteien(); applyWahlMap(); }; }
+    if (aj && WH && WH.jahre) { aj.innerHTML = ""; Object.keys(WH.jahre).sort().reverse().forEach(function (y) { aj.appendChild(el("option", { value: y, text: y })); }); aj.value = "2025"; aj.onchange = function () { renderAW(); }; }
+    if (mj) { mj.innerHTML = ""; mj.appendChild(el("option", { value: "", text: LANG === "en" ? "Off" : "Aus" })); yrs.forEach(function (y) { mj.appendChild(el("option", { value: y, text: y + (wahlIsGem(y) ? "" : (LANG === "en" ? " (state)" : " (Land)")) })); }); mj.onchange = function () { fillWahlParteien(); applyWahlMap(); }; }
     if (mp) mp.onchange = applyWahlMap;
     document.querySelectorAll("[data-wmode]").forEach(function (b) {
       b.onclick = function () { awWahlMode = b.getAttribute("data-wmode"); document.querySelectorAll("[data-wmode]").forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); }); renderAW(); };
@@ -1354,8 +1373,15 @@ select, input, textarea { font-size: 16px; }
   function fillWahlParteien() {
     var y = document.getElementById("m-wahl-jahr").value, mp = document.getElementById("m-wahl-partei");
     mp.hidden = !y; if (!y) return;
-    var cur = mp.value || "AfD", a = whArea(y, "Deutschland"); mp.innerHTML = "";
-    if (!a) return;
+    var cur = mp.value || "afd"; mp.innerHTML = "";
+    if (wahlIsGem(y)) {
+      var codes = Object.keys(WG.jahre[y]);
+      codes.sort(function (a, b) { return (WG.rechts.indexOf(b) >= 0) - (WG.rechts.indexOf(a) >= 0) || WG.parteien[a].localeCompare(WG.parteien[b]); });
+      codes.forEach(function (c) { mp.appendChild(el("option", { value: c, text: WG.parteien[c] })); });
+      mp.value = codes.indexOf(cur) >= 0 ? cur : (codes.indexOf("afd") >= 0 ? "afd" : codes[0]);
+      return;
+    }
+    var a = whArea(y, "Deutschland"); if (!a) return;
     var ps = Object.keys(a.p).filter(function (p) { return p !== "Sonstige"; }).sort(function (x, z) { return a.p[z] - a.p[x]; });
     ps.forEach(function (p) { mp.appendChild(el("option", { value: p, text: p + " (" + pct1(a.p[p] / a.g * 100) + " %)" })); });
     var rechts = ps.filter(function (p) { return RECHTE_PARTEIEN.indexOf(p) >= 0; });
@@ -1363,25 +1389,42 @@ select, input, textarea { font-size: 16px; }
   }
   function applyWahlMap() {
     var mj = document.getElementById("m-wahl-jahr"), mp = document.getElementById("m-wahl-partei"), lg = document.getElementById("m-wahl-legend");
-    var y = mj ? mj.value : "", p = mp ? mp.value : "";
+    var y = mj ? mj.value : "", p = mp ? mp.value : "", en = LANG === "en";
     WMAP = null;
-    if (!landLayer) return;
-    if (!y || !p || !WH) { landLayer.setStyle({ fill: false }); if (lg) lg.hidden = true; return; }
-    var vals = {}, max = 0, en = LANG === "en";
-    LAND.features.forEach(function (f) { var n = f.properties.name, a = whArea(y, n); vals[n] = a && a.g ? (a.p[p] || 0) / a.g * 100 : null; if (vals[n] != null) max = Math.max(max, vals[n]); });
-    WMAP = { y: y, p: p, vals: vals };
-    var c1 = RECHTE_PARTEIEN.indexOf(p) >= 0 ? [178, 58, 72] : [47, 111, 191];
-    function col(t) { return "rgb(" + c1.map(function (c) { return Math.round(245 + (c - 245) * t); }).join(",") + ")"; }
-    landLayer.eachLayer(function (l) { var v = vals[l.feature.properties.name]; l.setStyle(v == null ? { fill: true, fillColor: NA_COL, fillOpacity: 0.35 } : { fill: true, fillColor: col(max ? v / max : 0), fillOpacity: 0.8 }); });
+    if (!landLayer || !polyLayer) return;
+    if (!y || !p) { landLayer.setStyle({ fill: false }); polyLayer.setStyle(styleFor); if (lg) lg.hidden = true; if (map && markerLayer && !map.hasLayer(markerLayer)) map.addLayer(markerLayer); return; }
+    if (wahlIsGem(y)) {
+      var arr = WG.jahre[y][p], vals = {}, max = 0, label = WG.parteien[p] || p;
+      if (!arr) arr = [];
+      WG.ags.forEach(function (a, i) { var v = arr[i]; if (v != null) { vals[a] = v; if (v > max) max = v; } });
+      WMAP = { gem: true, y: y, p: p, label: label, vals: vals, max: max || 1, rechts: WG.rechts.indexOf(p) >= 0 };
+      landLayer.setStyle({ fill: false });
+      polyLayer.setStyle(styleFor);
+      if (map && markerLayer && map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
+      if (lg) {
+        lg.hidden = false;
+        lg.innerHTML = "<b>" + escH(label) + ", " + (en ? "second votes " : "Zweitstimmen ") + y + (en ? " by municipality" : " je Gemeinde") + "</b>: 0 % <span style=\"display:inline-block;width:120px;height:10px;vertical-align:middle;border-radius:2px;background:linear-gradient(90deg," + wahlCol(0, WMAP.rechts) + "," + wahlCol(1, WMAP.rechts) + ")\"></span> " + pct1(max) + " %. " +
+          (en ? "Grey: no data for this municipality (for 195 municipalities without results). Case colouring is hidden while this is on; choose “Off” to show it again." : "Grau: keine Daten für diese Gemeinde (195 Gemeinden ohne Ergebnis). Die Einfärbung der Fälle ist dabei verdeckt; mit „Aus“ wird sie wieder sichtbar.");
+      }
+      return;
+    }
+    // Länder (vor 1990 bzw. ohne Gemeindedaten)
+    if (!WH) return;
+    var lvals = {}, lmax = 0;
+    LAND.features.forEach(function (f) { var n = f.properties.name, a = whArea(y, n); lvals[n] = a && a.g ? (a.p[p] || 0) / a.g * 100 : null; if (lvals[n] != null) lmax = Math.max(lmax, lvals[n]); });
+    WMAP = { y: y, p: p, label: p, vals: lvals, max: lmax || 1, rechts: RECHTE_PARTEIEN.indexOf(p) >= 0 };
+    polyLayer.setStyle(styleFor);
+    if (map && markerLayer && !map.hasLayer(markerLayer)) map.addLayer(markerLayer);
+    landLayer.eachLayer(function (l) { var v = lvals[l.feature.properties.name]; l.setStyle(v == null ? { fill: true, fillColor: NA_COL, fillOpacity: 0.35 } : { fill: true, fillColor: wahlCol(v / WMAP.max, WMAP.rechts), fillOpacity: 0.8 }); });
     if (lg) {
       lg.hidden = false;
       lg.innerHTML = "<b>" + escH(p) + ", " + (en ? "federal election " : "Bundestagswahl ") + y + "</b> (" + (y === "1949" ? (en ? "vote share" : "Stimmenanteil") : (en ? "second votes" : "Zweitstimmen")) + (en ? " by state): " : " je Land): ") +
-        "0 % <span style=\"display:inline-block;width:120px;height:10px;vertical-align:middle;border-radius:2px;background:linear-gradient(90deg," + col(0) + "," + col(1) + ")\"></span> " + pct1(max) + " %. " +
-        (en ? "Grey: no federal election in this state (GDR before 1990, Berlin until 1987). Below 0.5 % counts as 0. Case colouring is hidden while this is on; choose “Off” to show it again." : "Grau: keine Bundestagswahl in diesem Land (DDR vor 1990, Berlin bis 1987). Unter 0,5 % zählt als 0. Die Einfärbung der Fälle ist dabei verdeckt; mit „Aus“ wird sie wieder sichtbar.");
+        "0 % <span style=\"display:inline-block;width:120px;height:10px;vertical-align:middle;border-radius:2px;background:linear-gradient(90deg," + wahlCol(0, WMAP.rechts) + "," + wahlCol(1, WMAP.rechts) + ")\"></span> " + pct1(lmax) + " %. " +
+        (en ? "Grey: no federal election in this state for this year. Below 0.5 % counts as 0. Case colouring is hidden while this is on; choose “Off” to show it again." : "Grau: keine Bundestagswahl in diesem Land für dieses Jahr. Unter 0,5 % zählt als 0. Die Einfärbung der Fälle ist dabei verdeckt; mit „Aus“ wird sie wieder sichtbar.");
     }
   }
   function wahlTip(name) {
-    if (!WMAP) return "";
+    if (!WMAP || WMAP.gem) return "";
     var v = WMAP.vals[name];
     return "<br>" + escH(WMAP.p) + " " + WMAP.y + ": " + (v == null ? (LANG === "en" ? "no election" : "keine Wahl") : pct1(v) + " %");
   }

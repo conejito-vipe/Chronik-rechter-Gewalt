@@ -12,11 +12,11 @@ for r in F:
     t = by_url.get(r['urls'])
     if not t:
         continue
-    parts = ['Todesopfer rechter Gewalt laut Amadeu Antonio Stiftung.']
+    parts = ['Todesopfer rechter Gewalt:']
     if t.get('alter'):
         parts.append(f"Alter: {t['alter']} Jahre.")
     if t.get('ort'):
-        parts.append(f"Ort laut Stiftung: {t['ort']}.")
+        parts.append(f"Ort: {t['ort']}.")
     parts.append(f"Status laut Stiftung: {t['status'] or 'ohne Angabe'}.")
     r['beschreibung'] = ' '.join(parts)
     n += 1
