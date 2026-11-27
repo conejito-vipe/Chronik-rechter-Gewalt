@@ -721,7 +721,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       var er = s.erwerb;
       dl.appendChild(el("dt", { style: "grid-column:1/-1;margin-top:8px;font-size:14px;font-weight:700;color:var(--accent)" }, [
         el("span", { text: "Erwerbsstatus (ab 15 Jahren)" }),
-        el("span", { text: "Zensus 2022, Tab. 2000S-1001, gerundet. Erwerbslose nach ILO (Befragung), nicht gemeldete Arbeitslose.", style: "display:block;font-size:10.5px;font-weight:400;line-height:1.3" })
+        el("span", { text: "Zensus 2022, Tab. 2000S-1001, gerundet. Erwerbslose nach ILO (Befragung), nicht gemeldete Arbeitslose.", style: "display:block;font-size:10.5px;font-weight:400;line-height:1.3;color:var(--fg)" })
       ]));
       [["gesamt", "Personen ab 15 Jahren"], ["erwerbspersonen", "Erwerbspersonen"], ["erwerbstaetige", "· Erwerbstätige"], ["erwerbslose", "· Erwerbslose"], ["nichterwerb", "Nichterwerbspersonen"]].forEach(function (k) {
         if (er[k[0]]) row(k[1], er[k[0]].abs, k[0] === "gesamt" ? 100 : er[k[0]].pct);
@@ -732,7 +732,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       var b = s.bildung;
       dl.appendChild(el("dt", { style: "grid-column:1/-1;margin-top:8px;font-size:14px;font-weight:700;color:var(--accent)" }, [
         el("span", { text: "Höchster beruflicher Abschluss (ab 15 Jahren)" }),
-        el("span", { text: "Zensus 2022, Tab. 2000S-1003, gerundet.", style: "display:block;font-size:10.5px;font-weight:400;line-height:1.3" })
+        el("span", { text: "Zensus 2022, Tab. 2000S-1003, gerundet.", style: "display:block;font-size:10.5px;font-weight:400;line-height:1.3;color:var(--fg)" })
       ]));
       row("Personen ab 15 Jahren", b.gesamt, 100);
       [["mit", "Mit Abschluss"], ["lehre", "· Lehre, duale Ausbildung"], ["fachschule", "· Fachschulabschluss"], ["hochschule", "· Bachelor, Master, Diplom, Promotion"], ["ohne", "Ohne Abschluss"]].forEach(function (k) {
