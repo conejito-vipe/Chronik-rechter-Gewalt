@@ -1240,7 +1240,7 @@ select, input, textarea { font-size: 16px; }
         });
         ctx.restore();
       } };
-      window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "bar", plugins: [labelPlugin], data: { labels: rows.map(function (r) { return r.p; }), datasets: [{ label: "Anteil im Gebiet (%)", data: rows.map(function (r) { return r.v; }), backgroundColor: rows.map(function (r) { return RECHTE_PARTEIEN.indexOf(r.p) >= 0 ? "#b23a48" : "#8d99ae"; }) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 120 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (ctx) { return Number(ctx.parsed.x).toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %"; } } } }, scales: { y: { ticks: { autoSkip: false, font: { size: 12 } } }, x: { max: maxV * 1.1 + 1, title: { display: true, text: wj === "1949" ? (LANG === "en" ? "Vote share (%)" : "Stimmenanteil (%)") : (LANG === "en" ? "Share of second votes (%)" : "Anteil an den Zweitstimmen (%)") } } } } });
+      window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "bar", plugins: [labelPlugin], data: { labels: rows.map(function (r) { return r.p; }), datasets: [{ label: "Anteil im Gebiet (%)", data: rows.map(function (r) { return r.v; }), backgroundColor: rows.map(function (r) { return RECHTE_PARTEIEN.indexOf(r.p) >= 0 ? "#b23a48" : "#8d99ae"; }) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 120 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (ctx) { return Number(ctx.parsed.x).toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %"; } } } }, scales: { y: { ticks: { autoSkip: false, font: { size: 12 }, color: isDark() ? "#f3efe8" : "#1d1b19" } }, x: { max: maxV * 1.1 + 1, title: { display: true, text: wj === "1949" ? (LANG === "en" ? "Vote share (%)" : "Stimmenanteil (%)") : (LANG === "en" ? "Share of second votes (%)" : "Anteil an den Zweitstimmen (%)") } } } } });
     }
     tb.innerHTML = rows.map(function (r) { return "<tr><td>" + escH(r.p) + "</td><td class=\"num\">" + r.v.toLocaleString(loc(), { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + " %</td><td class=\"num\">" + fmt(r.abs) + "</td></tr>"; }).join("");
     // Zusammenhänge: Gemeinden mit Fällen (ranked) gegen Parteianteil
@@ -1298,8 +1298,27 @@ select, input, textarea { font-size: 16px; }
       return { label: p, borderColor: c, backgroundColor: c, borderWidth: r ? 3 : 2, borderDash: r && p !== "AfD" ? [6, 4] : [], pointRadius: 3, spanGaps: false, tension: 0,
         data: yrs.map(function (y) { var a = whArea(y, area); return a && a.g && a.p[p] != null ? a.p[p] / a.g * 100 : null; }) };
     });
-    window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "line", data: { labels: yrs, datasets: ds },
-      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+    var valLabels = { id: "awWahlPts", afterDatasetsDraw: function (c) {
+      var vis = c.data.datasets.map(function (d, i) { return { d: d, i: i }; }).filter(function (o) { return !o.d.hidden; });
+      if (vis.length === 0 || vis.length > 3) return;
+      var ctx = c.ctx; ctx.save(); ctx.font = "11px system-ui, sans-serif"; ctx.textBaseline = "bottom"; ctx.textAlign = "center";
+      vis.forEach(function (o) {
+        var meta = c.getDatasetMeta(o.i), prev = null;
+        o.d.data.forEach(function (v, j) {
+          if (v == null) return;
+          var pt = meta.data[j]; if (!pt) return;
+          var txt = pct1(v) + " %";
+          if (prev != null) { var dl = v - prev; txt += " (" + (dl >= 0 ? "+" : "−") + pct1(Math.abs(dl)) + ")"; }
+          ctx.fillStyle = isDark() ? "#f3efe8" : "#1d1b19";
+          ctx.textAlign = pt.x > c.chartArea.right - 90 ? "right" : (pt.x < c.chartArea.left + 90 ? "left" : "center");
+          ctx.fillText(txt, pt.x, pt.y - 6);
+          prev = v;
+        });
+      });
+      ctx.restore();
+    } };
+    window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "line", plugins: [valLabels], data: { labels: yrs, datasets: ds },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, layout: { padding: { top: 6, right: 16 } },
         plugins: { legend: { display: false },
           tooltip: { callbacks: { label: function (ctx) { return ctx.parsed.y == null ? null : ctx.dataset.label + ": " + pct1(ctx.parsed.y) + " %"; } } } },
         scales: { y: { beginAtZero: true, title: { display: true, text: LANG === "en" ? "Share of second votes (%)" : "Anteil an den Zweitstimmen (%)" } }, x: { title: { display: true, text: LANG === "en" ? "Election year" : "Wahljahr" } } } } });
