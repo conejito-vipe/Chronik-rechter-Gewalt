@@ -306,9 +306,6 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     }
     addChip("", "Alle", CASES.length);
     Object.keys(kats).sort().forEach(function (k) { addChip(k, k, catN[k]); });
-    var tb = el("button", { type: "button", class: "chip", "data-kat": "__todes", title: "Gemeinden mit Todesopfern (Amadeu Antonio Stiftung, 1990 bis 2026). Nicht Teil der Fallzählung.", text: "Todesopfer" });
-    tb.onclick = function () { F.todes = !F.todes; F.limit = 100; update(); };
-    chipBox.appendChild(tb);
     syncKatChips();
     fill("f-land", Object.keys(lands).sort());
     function fill(id, values) {
