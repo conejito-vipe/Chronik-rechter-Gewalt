@@ -53,6 +53,12 @@ a { color: var(--accent); }
 .muted { color: var(--muted); }
 .notice { background: var(--warn-bg); color: var(--warn-fg); border-radius: 6px; padding: 10px 12px; margin: 12px 0; font-size: 13px; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin: 12px 0 6px; }
+.kat-wrap { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.kat-label { font-size: 12px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--muted); background: transparent; color: inherit; cursor: pointer; }
+.chip.on { background: var(--accent, #1f4e79); color: #fff; border-color: transparent; }
+.chip:focus-visible { outline: 2px solid var(--accent, #1f4e79); outline-offset: 2px; }
 .filters label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 3px; min-width: 0; }
 select, input[type="search"], button {
   font: inherit; color: var(--fg); background: var(--panel);
@@ -110,9 +116,11 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     <label>Jahr
       <select id="f-jahr"><option value="">Alle</option><option>2015</option><option>2016</option><option>2017</option></select>
     </label>
-    <label>Kategorie
-      <select id="f-kat"><option value="">Alle</option></select>
-    </label>
+    <div class="kat-wrap">
+      <span class="kat-label">Straftat</span>
+      <div class="chips" id="kat-chips" role="group" aria-label="Straftat"></div>
+      <select id="f-kat" hidden aria-hidden="true"><option value="">Alle</option></select>
+    </div>
     <label>Bundesland
       <select id="f-land"><option value="">Alle</option></select>
     </label>
@@ -288,6 +296,17 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     CASES.forEach(function (c) { kats[c.kategorie] = 1; });
     Object.keys(ags2land).forEach(function (a) { lands[ags2land[a]] = 1; });
     fill("f-kat", Object.keys(kats).sort());
+    var catN = {};
+    CASES.forEach(function (c) { catN[c.kategorie] = (catN[c.kategorie] || 0) + 1; });
+    var chipBox = document.getElementById("kat-chips");
+    function addChip(val, label, n) {
+      var b = el("button", { type: "button", class: "chip", "data-kat": val, text: label + " (" + fmt(n) + ")" });
+      b.onclick = function () { F.kat = val; document.getElementById("f-kat").value = val; F.limit = 100; update(); };
+      chipBox.appendChild(b);
+    }
+    addChip("", "Alle", CASES.length);
+    Object.keys(kats).sort().forEach(function (k) { addChip(k, k, catN[k]); });
+    syncKatChips();
     fill("f-land", Object.keys(lands).sort());
     function fill(id, values) {
       var s = document.getElementById(id);
@@ -765,7 +784,15 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
   }
 
   // ---------- Aktualisierung ----------
+  function syncKatChips() {
+    document.querySelectorAll("#kat-chips .chip").forEach(function (b) {
+      var on = b.getAttribute("data-kat") === F.kat;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
   function update() {
+    syncKatChips();
     var base = CASES.filter(baseOk);
     counts = {};
     base.forEach(function (c) { counts[c.ags] = (counts[c.ags] || 0) + 1; });
