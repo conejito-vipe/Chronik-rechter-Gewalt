@@ -106,9 +106,14 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
 .tabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 14px; font: inherit; color: var(--muted); cursor: pointer; }
 .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
 .view[hidden], #f-land-wrap[hidden] { display: none !important; }
-.toolbar { display: flex; gap: 8px; justify-content: flex-end; margin: 4px 0 8px; }
-.toolbar button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
-.toolbar button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: transparent; }
+.topbar { position: sticky; top: 0; z-index: 1000; display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.lang { display: inline-flex; }
+.lang button { font: inherit; font-size: 13px; font-weight: 600; min-width: 44px; padding: 6px 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
+.lang button:first-child { border-radius: 999px 0 0 999px; }
+.lang button:last-child { border-radius: 0 999px 999px 0; border-left: 0; }
+.lang button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: transparent; }
+.icon-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; padding: 0; }
+.icon-btn svg { display: block; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 10px 0; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .kpi b { display: block; font-size: 22px; color: var(--accent); }
@@ -121,14 +126,16 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
+<div class="topbar">
+  <div class="lang" role="group" aria-label="Sprache">
+    <button type="button" id="lang-de" aria-pressed="true">DE</button>
+    <button type="button" id="lang-en" aria-pressed="false">EN</button>
+  </div>
+  <button type="button" id="btn-theme" class="icon-btn" aria-pressed="false" title="Darkmodus"></button>
+</div>
 <main>
   <h1>Chronik rechter Gewalt: Karte und Statistik nach Gemeinden</h1>
   <p class="muted">Angriffe auf Geflüchtete und Unterkünfte in Deutschland, 2015 bis Februar 2017. Bereinigter Datenstand 26.11.2026.</p>
-  <div class="toolbar">
-    <button type="button" id="btn-theme" aria-pressed="false">Darkmodus</button>
-    <button type="button" id="btn-lang">English</button>
-  </div>
-
   <nav class="tabs" role="tablist" aria-label="Ansicht">
     <button type="button" role="tab" id="tab-karte" data-view="karte" aria-controls="view-karte" aria-selected="true">Karte</button>
     <button type="button" role="tab" id="tab-auswertung" data-view="auswertung" aria-controls="view-auswertung" aria-selected="false">Auswertung</button>
@@ -1235,7 +1242,9 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       if (e.getAttribute("placeholder") !== v) e.setAttribute("placeholder", v);
     });
     document.documentElement.lang = LANG;
-    var bl = document.getElementById("btn-lang"); if (bl) bl.textContent = LANG === "en" ? "Deutsch" : "English";
+    var ld = document.getElementById("lang-de"), le = document.getElementById("lang-en");
+    if (ld) ld.setAttribute("aria-pressed", String(LANG === "de"));
+    if (le) le.setAttribute("aria-pressed", String(LANG === "en"));
   }
   var trTimer = null;
   function scheduleTranslate() { clearTimeout(trTimer); trTimer = setTimeout(translateDom, 120); }
@@ -1244,28 +1253,45 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     if (t) return t === "dark";
     return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
   }
+  var MOON_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  var SUN_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>';
   function applyTheme(mode) {
     if (mode) document.documentElement.setAttribute("data-theme", mode); else document.documentElement.removeAttribute("data-theme");
-    var bt = document.getElementById("btn-theme"); if (bt) { bt.setAttribute("aria-pressed", String(isDark())); bt.textContent = isDark() ? "Hellmodus" : "Darkmodus"; }
+    var bt = document.getElementById("btn-theme");
+    if (bt) {
+      bt.setAttribute("aria-pressed", String(isDark()));
+      bt.innerHTML = isDark() ? SUN_SVG : MOON_SVG;
+      bt.title = LANG === "en" ? (isDark() ? "Light mode" : "Dark mode") : (isDark() ? "Hellmodus" : "Darkmodus");
+      bt.setAttribute("aria-label", bt.title);
+    }
     if (typeof Chart !== "undefined" && Chart.defaults) Chart.defaults.color = isDark() ? "#d8d4cc" : "#666";
     if (window.__awChart || window.__awWahl || window.__awScatter) renderAW();
   }
   function bindPrefs() {
-    var bt = document.getElementById("btn-theme"), bl = document.getElementById("btn-lang");
+    var bt = document.getElementById("btn-theme"), ld = document.getElementById("lang-de"), le = document.getElementById("lang-en");
     var savedTheme = null;
     try { savedTheme = localStorage.getItem("crg-theme"); } catch (e) {}
-    if (savedTheme === "dark" || savedTheme === "light") applyTheme(savedTheme);
+    applyTheme(savedTheme === "dark" || savedTheme === "light" ? savedTheme : null);
     if (bt) bt.onclick = function () {
       var m = isDark() ? "light" : "dark";
       try { localStorage.setItem("crg-theme", m); } catch (e) {}
       applyTheme(m);
     };
-    if (bl) bl.onclick = function () {
-      LANG = LANG === "en" ? "de" : "en";
+    function setLang(l) {
+      LANG = l;
       try { localStorage.setItem("crg-lang", LANG); } catch (e) {}
       translateDom();
+      applyTheme(document.documentElement.getAttribute("data-theme"));
       renderAW();
-    };
+    }
+    if (ld) ld.onclick = function () { setLang("de"); };
+    if (le) le.onclick = function () { setLang("en"); };
+    window.addEventListener("resize", function () {
+      clearTimeout(window.__crgResize);
+      window.__crgResize = setTimeout(function () {
+        if (typeof map !== "undefined" && map) { map.invalidateSize(); if (!F.land && !hasKeys(F.ags)) zoomToAll(); }
+      }, 250);
+    });
     translateDom();
     if (window.MutationObserver) new MutationObserver(scheduleTranslate).observe(document.body, { childList: true, subtree: true, characterData: true });
   }
