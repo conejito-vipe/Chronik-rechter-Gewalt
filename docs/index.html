@@ -2065,13 +2065,14 @@ select, input, textarea { font-size: 16px; }
       if (!arr) arr = [];
       WG.ags.forEach(function (a, i) { var v = arr[i]; if (v != null) { vals[a] = v; if (v > max) max = v; } });
       WMAP = { gem: true, y: y, p: p, label: label, vals: vals, max: max || 1, rechts: WG.rechts.indexOf(p) >= 0 };
+      var nMiss = Math.max(0, polyLayer.getLayers().length - Object.keys(vals).length);
       landLayer.setStyle({ fill: false });
       polyLayer.setStyle(styleFor);
       if (map && markerLayer && map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
       if (lg) {
         lg.hidden = false;
         lg.innerHTML = "<b>" + escH(label) + ", " + (en ? "second votes " : "Zweitstimmen ") + y + (en ? " by municipality" : " je Gemeinde") + "</b>: 0 % <span style=\"display:inline-block;width:120px;height:10px;vertical-align:middle;border-radius:2px;background:linear-gradient(90deg," + wahlCol(0, WMAP.rechts) + "," + wahlCol(1, WMAP.rechts) + ")\"></span> " + pct1(max) + " %. " +
-          (en ? "Grey: no data for this municipality (for 195 municipalities without results). Case colouring is hidden while this is on; choose “Off” to show it again." : "Grau: keine Daten für diese Gemeinde (195 Gemeinden ohne Ergebnis). Die Einfärbung der Fälle ist dabei verdeckt; mit „Aus“ wird sie wieder sichtbar.");
+          (en ? "Grey: no data for this municipality (for " + nMiss + " municipalities without results). Case colouring is hidden while this is on; choose “Off” to show it again." : "Grau: keine Daten für diese Gemeinde (" + nMiss + " Gemeinden ohne Ergebnis). Die Einfärbung der Fälle ist dabei verdeckt; mit „Aus“ wird sie wieder sichtbar.");
       }
       return;
     }
