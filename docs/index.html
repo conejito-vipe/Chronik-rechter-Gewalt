@@ -1197,7 +1197,7 @@ select, input, textarea { font-size: 16px; }
   var ags2name = {}, ags2land = {}, ags2ewz = {}, ags2rp = {};
 
   Promise.all([
-    fetch("faelle.json").then(function (r) { return r.json(); }),
+    Promise.all([fetch("faelle-1.json").then(function (r) { return r.json(); }), fetch("faelle-2.json").then(function (r) { return r.json(); })]).then(function (p) { return p[0].concat(p[1]); }),
     fetch("gemeinden.geojson").then(function (r) { return r.json(); }),
     fetch("laender.geojson").then(function (r) { return r.json(); }),
     fetch("statistik.json").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }),
