@@ -1610,7 +1610,7 @@ html[lang="en"] .src-de{display:none}
       var rate = f.ewz ? (c / f.ewz * 100000) : null;
       var dev = (s.straftaten && s.straftaten_2006) ? fmtPct((s.straftaten.abs - s.straftaten_2006) / s.straftaten_2006 * 100) : "–";
       var mw = s.maenner && s.frauen ? fmtPct(s.maenner.pct) + " / " + fmtPct(s.frauen.pct) : "–";
-      var nameCell = el("td", null, [el("button", { type: "button", style: "min-height:0;padding:2px 6px;border:none;background:none;color:var(--accent);text-decoration:underline", text: f.name })]);
+      var nameCell = el("td", null, [el("button", { type: "button", style: "min-height:0;padding:2px 6px;border:none;background:none;color:var(--accent);text-decoration:underline;text-align:left;white-space:nowrap;font:inherit", text: f.name })]);
       nameCell.firstChild.onclick = function () { F.focus = a; F.ags[a] = true; update(); };
       body.appendChild(el("tr", null, [
         nameCell,
