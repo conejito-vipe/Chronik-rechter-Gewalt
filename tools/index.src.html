@@ -269,11 +269,16 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
 
     <h2>Zeitliche Entwicklung</h2>
     <div class="card">
+      <nav class="tabs" role="tablist" aria-label="Darstellung des Zeitverlaufs" style="margin-top:0">
+        <button type="button" role="tab" data-mode="stack" aria-selected="true">Gestapelt</button>
+        <button type="button" role="tab" data-mode="lines" aria-selected="false">Linien je Straftat</button>
+        <button type="button" role="tab" data-mode="total" aria-selected="false">Gesamt</button>
+      </nav>
       <div class="filters" style="margin-bottom:8px">
         <label>Von Jahr <select id="aw-von"></select></label>
         <label>Bis Jahr <select id="aw-bis"></select></label>
       </div>
-      <canvas id="aw-chart"></canvas><p class="note">Gestapelt nach Straftat, für das gewählte Gebiet.</p></div>
+      <canvas id="aw-chart"></canvas><p class="note" id="aw-chart-note">Gestapelt nach Straftat, für das gewählte Gebiet.</p></div>
 
     <h2>Gewichtung pro Gemeinde</h2>
     <div class="card">
@@ -956,6 +961,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
   // ---------- Ansicht: Karte / Auswertung ----------
   // ---------- Auswertung: eigene Filter, Übernahme von der Karte ----------
   var AF = { jahr: "", kat: "", land: "", q: "", ags: {} };
+  var awMode = "stack";
   var AW_PAL = ["#b23a48","#e07a5f","#f2cc8f","#81b29a","#3d405b","#6d597a","#355070","#99a8b2","#ccd5ae","#8d99ae"];
   var awBuilt = false, awTimer = null;
   function escH(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (ch) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]; }); }
@@ -1018,11 +1024,22 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     var areaEw = 0; GEO.features.forEach(function (f) { var a = f.properties.ags; if (!AF.land || ags2land[a] === AF.land) areaEw += ags2ewz[a] || 0; });
     document.getElementById("aw-k-rate").textContent = areaEw ? (list.length / areaEw * 100000).toLocaleString("de-DE", { maximumFractionDigits: 1 }) : "–";
     var catKeys = Object.keys(cats).sort();
-    var datasets = catKeys.map(function (k, i) { return { label: k, data: years.map(function (y) { return (byYC[y] && byYC[y][k]) || 0; }), backgroundColor: AW_PAL[i % AW_PAL.length] }; });
+    var chartType = "bar", datasets, scalesOpt = { x: { stacked: true }, y: { stacked: true } };
+    if (awMode === "total") {
+      chartType = "line"; scalesOpt = {};
+      datasets = [{ label: "Fälle gesamt", data: years.map(function (y) { return byY[y] || 0; }), borderColor: "#b23a48", backgroundColor: "#b23a48", tension: 0.2, pointRadius: 3 }];
+    } else if (awMode === "lines") {
+      chartType = "line"; scalesOpt = {};
+      datasets = catKeys.map(function (k, i) { return { label: k, data: years.map(function (y) { return (byYC[y] && byYC[y][k]) || 0; }), borderColor: AW_PAL[i % AW_PAL.length], backgroundColor: AW_PAL[i % AW_PAL.length], tension: 0.2, pointRadius: 2, fill: false }; });
+    } else {
+      datasets = catKeys.map(function (k, i) { return { label: k, data: years.map(function (y) { return (byYC[y] && byYC[y][k]) || 0; }), backgroundColor: AW_PAL[i % AW_PAL.length] }; });
+    }
     if (typeof Chart !== "undefined") {
       if (window.__awChart) window.__awChart.destroy();
-      window.__awChart = new Chart(document.getElementById("aw-chart"), { type: "bar", data: { labels: years, datasets: datasets }, options: { responsive: true, plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } } }, scales: { x: { stacked: true }, y: { stacked: true } } } });
+      window.__awChart = new Chart(document.getElementById("aw-chart"), { type: chartType, data: { labels: years, datasets: datasets }, options: { responsive: true, plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } } }, scales: scalesOpt } });
     }
+    var noteEl = document.getElementById("aw-chart-note");
+    if (noteEl) noteEl.textContent = awMode === "total" ? "Summe aller Fälle je Jahr, für das gewählte Gebiet." : awMode === "lines" ? "Eine Linie je Straftat, für das gewählte Gebiet." : "Gestapelt nach Straftat, für das gewählte Gebiet.";
     var ranked = awRows(list).filter(function (r) { return r.n >= 3; }).sort(function (a, b) { return b.rate - a.rate; });
     awTable("aw-nat-body", ranked.slice(0, 25));
     document.getElementById("aw-nat-note").textContent = ranked.length ? "Top 25 von " + fmt(ranked.length) + " Gemeinden im Gebiet (" + (AF.land || "Gesamtdeutschland") + ")." : "Keine Gemeinde mit mindestens 3 Fällen in der Auswahl.";
@@ -1136,6 +1153,13 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     Object.keys(jahre).sort().forEach(function (y) { vsel.appendChild(el("option", { value: y, text: y })); bsel.appendChild(el("option", { value: y, text: y })); });
     vsel.value = Object.keys(jahre).sort()[0]; bsel.value = Object.keys(jahre).sort().slice(-1)[0];
     vsel.onchange = function () { renderAW(); };
+    document.querySelectorAll("[data-mode]").forEach(function (b) {
+      b.onclick = function () {
+        awMode = b.getAttribute("data-mode");
+        document.querySelectorAll("[data-mode]").forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); });
+        renderAW();
+      };
+    });
     bsel.onchange = function () { renderAW(); };
     lsel.onchange = function (e) { AF.land = e.target.value; renderAW(); };
     document.getElementById("aw-q").oninput = function (e) {
