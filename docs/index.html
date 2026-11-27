@@ -944,10 +944,10 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     <h2>Wahlergebnisse</h2>
     <div class="card" style="margin-bottom:28px">
       <p class="note">Bundestagswahl 2025, Zweitstimmen. Gemeinden gelten für ihren Wahlkreis. Für das Gebiet: Mittel der Wahlkreise, gewichtet nach Wählerinnen und Wählern.</p>
-      <div id="aw-wahl-wrap" style="position:relative;height:420px"><canvas id="aw-wahl-chart"></canvas></div>
+      <div id="aw-wahl-wrap" style="position:relative;height:420px"><canvas id="aw-wahl-chart" style="max-height:none"></canvas></div>
       <p class="note" style="margin-top:10px"><b>Was man sieht:</b> Jeder Balken ist der Zweitstimmen-Anteil einer Partei im gewählten Gebiet. Die stärkste Partei steht oben. Rot markiert sind die rechten Parteien: AfD, BÜNDNIS DEUTSCHLAND und WerteUnion. Diese Einordnung ist eine Setzung und im Code änderbar (Liste RECHTE_PARTEIEN). <b>Wozu es dient:</b> Es zeigt das politische Umfeld des Gebiets, damit die Fallzahlen in Relation zu den Wahlergebnissen gelesen werden können. Ein Zusammenhang sagt nichts über Ursachen aus.</p>
       <details><summary class="note">Zahlen als Tabelle</summary>
-        <div class="tablewrap"><table><thead><tr><th>Partei</th><th class="num">Anteil im Gebiet</th></tr></thead><tbody id="aw-wahl-body"></tbody></table></div>
+        <div class="tablewrap"><table><thead><tr><th>Partei</th><th class="num">Anteil im Gebiet</th><th class="num">Stimmen</th></tr></thead><tbody id="aw-wahl-body"></tbody></table></div>
       </details>
     </div>
 
@@ -1719,15 +1719,26 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       var wkW = wk[k].waehler || 0; sumW += wkW;
       parties.forEach(function (p) { var pc = wk[k].parteien[p] ? wk[k].parteien[p].pct : null; if (pc != null) acc[p] = (acc[p] || 0) + pc * wkW; });
     });
-    var rows = parties.map(function (p) { return { p: p, v: sumW && acc[p] != null ? acc[p] / sumW : null }; })
+    var absAcc = {};
+    Object.keys(seen).forEach(function (k) { parties.forEach(function (p) { var e = wk[k].parteien[p]; if (e && e.abs != null) absAcc[p] = (absAcc[p] || 0) + e.abs; }); });
+    var rows = parties.map(function (p) { return { p: p, v: sumW && acc[p] != null ? acc[p] / sumW : null, abs: absAcc[p] || 0 }; })
       .filter(function (r) { return r.v != null; }).sort(function (a, b) { return b.v - a.v; });
     if (typeof Chart !== "undefined" && document.getElementById("aw-wahl-chart")) {
       if (window.__awWahl) window.__awWahl.destroy();
       var wrap = document.getElementById("aw-wahl-wrap");
-      if (wrap) wrap.style.height = Math.max(240, rows.length * 30 + 80) + "px";
-      window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "bar", data: { labels: rows.map(function (r) { return r.p; }), datasets: [{ label: "Anteil im Gebiet (%)", data: rows.map(function (r) { return r.v; }), backgroundColor: rows.map(function (r) { return RECHTE_PARTEIEN.indexOf(r.p) >= 0 ? "#b23a48" : "#8d99ae"; }) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { autoSkip: false, font: { size: 12 } } }, x: { title: { display: true, text: "Anteil an den Zweitstimmen (%)" } } } } });
+      if (wrap) wrap.style.height = Math.max(240, rows.length * 26 + 60) + "px";
+      var maxV = rows.reduce(function (m, r) { return Math.max(m, r.v); }, 0);
+      var labelPlugin = { id: "awWahlLabels", afterDatasetsDraw: function (c) {
+        var ctx = c.ctx; ctx.save(); ctx.font = "12px system-ui, sans-serif"; ctx.fillStyle = getComputedStyle(document.body).color; ctx.textBaseline = "middle";
+        c.getDatasetMeta(0).data.forEach(function (bar, i) {
+          var r = rows[i]; if (!r) return;
+          ctx.fillText(r.v.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %  ·  " + fmt(r.abs) + " Stimmen", bar.x + 6, bar.y);
+        });
+        ctx.restore();
+      } };
+      window.__awWahl = new Chart(document.getElementById("aw-wahl-chart"), { type: "bar", plugins: [labelPlugin], data: { labels: rows.map(function (r) { return r.p; }), datasets: [{ label: "Anteil im Gebiet (%)", data: rows.map(function (r) { return r.v; }), backgroundColor: rows.map(function (r) { return RECHTE_PARTEIEN.indexOf(r.p) >= 0 ? "#b23a48" : "#8d99ae"; }) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 170 } }, plugins: { legend: { display: false } }, scales: { y: { ticks: { autoSkip: false, font: { size: 12 } } }, x: { max: maxV * 1.1 + 1, title: { display: true, text: "Anteil an den Zweitstimmen (%)" } } } } });
     }
-    tb.innerHTML = rows.map(function (r) { return "<tr><td>" + escH(r.p) + "</td><td class=\"num\">" + r.v.toLocaleString("de-DE", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + " %</td></tr>"; }).join("");
+    tb.innerHTML = rows.map(function (r) { return "<tr><td>" + escH(r.p) + "</td><td class=\"num\">" + r.v.toLocaleString("de-DE", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + " %</td><td class=\"num\">" + fmt(r.abs) + "</td></tr>"; }).join("");
     // Zusammenhänge: Gemeinden mit Fällen (ranked) gegen Parteianteil
     function pp(ags, p) { var k = gwk[ags]; return k && wk[k] && wk[k].parteien[p] ? wk[k].parteien[p].pct : null; }
     var zus = parties.map(function (p) {
@@ -1750,7 +1761,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     document.getElementById("aw-q").value = AF.q;
     document.getElementById("aw-jahr").value = AF.jahr;
     document.getElementById("aw-land").value = AF.land;
-    document.querySelectorAll("#aw-kat-chips [data-kat]").forEach(function (b) { var on = b.getAttribute("data-kat") === AF.kat; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+    document.querySelectorAll("#aw-kat-chips [data-kat]").forEach(function (b) { var on = b.getAttribute("data-kat") === AF.kat; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); b.style.background = on ? "var(--accent)" : "var(--panel)"; b.style.color = on ? "#fff" : "var(--fg)"; });
   }
   function buildAwFilters() {
     if (awBuilt || !CASES) return;
@@ -1764,7 +1775,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     Object.keys(lands).sort().forEach(function (l) { lsel.appendChild(el("option", { value: l, text: l })); });
     var box = document.getElementById("aw-kat-chips");
     function chip(val, label) {
-      var b = el("button", { type: "button", class: "chip", "data-kat": val, text: label });
+      var b = el("button", { type: "button", class: "chip", "data-kat": val, text: label, style: "border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;padding:5px 12px;border-radius:999px;font:inherit;font-size:13px" });
       b.onclick = function () { AF.kat = val; awSyncUI(); renderAW(); };
       box.appendChild(b);
     }
@@ -1794,7 +1805,10 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     document.getElementById("tab-karte").setAttribute("aria-selected", String(!isAw));
     document.getElementById("tab-auswertung").setAttribute("aria-selected", String(isAw));
     if (isAw) { buildAwFilters(); renderAW(); }
-    else if (typeof map !== "undefined" && map) setTimeout(function () { map.invalidateSize(); }, 0);
+    else if (typeof map !== "undefined" && map) setTimeout(function () {
+      map.invalidateSize();
+      if (!F.land && !hasKeys(F.ags)) zoomToAll();
+    }, 0);
     if (history.replaceState) history.replaceState(null, "", isAw ? "#auswertung" : "#karte");
   }
   document.querySelectorAll(".tabs [data-view]").forEach(function (b) {
