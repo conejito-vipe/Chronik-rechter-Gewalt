@@ -1104,6 +1104,7 @@ select, input, textarea { font-size: 16px; }
       <li><a href="https://dserver.bundestag.de/" target="_blank" rel="noopener noreferrer">Bundestagsdrucksachen (Chronik-Quellen)</a></li>
       <li><a href="https://github.com/davben/arvig" target="_blank" rel="noopener noreferrer">ARVIG – Anti-Refugee Violence in Germany (Benček/Strasheim), Daten der Chronik von Mut gegen rechte Gewalt, CC0, 2014 bis 2017</a></li>
       <li><a href="https://github.com/steffen-stell/btw_data" target="_blank" rel="noopener noreferrer">Bundestagswahlen 1953–2017 nach Wahlkreisen</a> und <a href="https://github.com/max-alletsee/tidy_bundestag" target="_blank" rel="noopener noreferrer">1949</a>, Daten der Bundeswahlleiterin (aufbereitet)</li>
+      <li>Bundestagswahl 2021: Die Bundeswahlleiterin, Ergebnisse nach Wahlkreisen, Stand 23.02.2024, <a href="https://bundeswahlleiterin.de/bundestagswahlen/2025/ergebnisse/opendata.html" target="_blank" rel="noopener noreferrer">Open-Data-Angebot</a>, Datenlizenz Deutschland – Namensnennung 2.0</li>
     </ul>
     <p>Die Chronik-Daten stammen aus Bundestagsdrucksachen, Antworten der Bundesregierung und Landesministerien, Polizeiangaben und Beratungsregistern. Die Gemeindegrenzen dürfen frei genutzt, aber nicht verkauft werden.</p>
   </footer>
@@ -1946,7 +1947,7 @@ select, input, textarea { font-size: 16px; }
   function areaName(area) { return area === "Deutschland" ? (LANG === "en" ? "Germany" : "Deutschland") : area; }
   function wahlNote(y, area, n) {
     var en = LANG === "en", nm = areaName(area);
-    if (awWahlMode === "zeit") return en ? "Federal elections 1949–2025 for " + nm + ", share of second votes (1949: single vote). 2021 is missing. Before 1990 West Germany only, Berlin until 1987 without direct vote." : "Bundestagswahlen 1949–2025 für " + nm + ", Anteil an den Zweitstimmen (1949: eine Stimme). 2021 fehlt. Vor 1990 nur Westdeutschland, Berlin bis 1987 ohne Direktwahl.";
+    if (awWahlMode === "zeit") return en ? "Federal elections 1949–2025 for " + nm + ", share of second votes (1949: single vote). 2021 is included (official file, status 23.02.2024). Before 1990 West Germany only, Berlin until 1987 without direct vote." : "Bundestagswahlen 1949–2025 für " + nm + ", Anteil an den Zweitstimmen (1949: eine Stimme). 2021 aus der Bundeswahlleiterin-Datei (Stand 23.02.2024). Vor 1990 nur Westdeutschland, Berlin bis 1987 ohne Direktwahl.";
     if (y === "2025") return en ? "Federal election 2025, second votes. Municipalities count as part of their constituency. For the area: average of the constituencies, weighted by voters." : "Bundestagswahl 2025, Zweitstimmen. Gemeinden gelten für ihren Wahlkreis. Für das Gebiet: Mittel der Wahlkreise, gewichtet nach Wählerinnen und Wählern.";
     if (!n) return en ? "No federal election results for " + nm + " in " + y + " (before 1990 West Germany only)." : "Für " + nm + " gibt es " + y + " keine Ergebnisse der Bundestagswahl (vor 1990 nur Westdeutschland).";
     return en ? "Federal election " + y + ", " + (y === "1949" ? "single vote" : "second votes") + ", result for " + nm + ". Parties below 0.5 % are grouped as “Sonstige”." : "Bundestagswahl " + y + ", " + (y === "1949" ? "eine Stimme" : "Zweitstimmen") + ", Ergebnis für " + nm + ". Parteien unter 0,5 % sind unter „Sonstige“ zusammengefasst.";
