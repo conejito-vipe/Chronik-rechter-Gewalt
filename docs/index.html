@@ -809,9 +809,6 @@ html[lang="en"] .src-de{display:none}
   </nav>
   <div class="view" id="view-karte" role="tabpanel" aria-labelledby="tab-karte">
 
-  <div class="notice" role="note">
-    <strong>Zum Schutz der Unterkünfte:</strong> Die Karte zeigt nur die Gemeinde. Die Punkte liegen im Inneren der Gemeinde und markieren nicht den genauen Ort des Vorfalls. Straßennamen sind aus den Beschreibungen entfernt.
-  </div>
 
   <form class="filters" id="filters" onsubmit="return false" aria-label="Filter">
     <label>Suche
@@ -858,6 +855,9 @@ html[lang="en"] .src-de{display:none}
       <div class="legend" id="legend" aria-label="Einfärbung. Klick filtert."></div>
       <p class="note" id="m-wahl-legend" hidden></p>
       <p class="muted" style="font-size:12px">Klick auf eine Gemeinde, eine Stadt, eine Einfärbung oder eine Landesgrenze filtert die Ansicht. Erneuter Klick hebt den Filter auf.</p>
+      <div class="notice" role="note">
+        <strong>Zum Schutz der Unterkünfte:</strong> Die Karte zeigt nur die Gemeinde. Die Punkte liegen im Inneren der Gemeinde und markieren nicht den genauen Ort des Vorfalls. Straßennamen sind aus den Beschreibungen entfernt.
+      </div>
     </div>
     <aside class="panel" id="panel" aria-live="polite">
       <h2>Gemeinde auswählen</h2>
@@ -886,7 +886,8 @@ html[lang="en"] .src-de{display:none}
         <tbody id="stat-body"></tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:12px">Alle Zahlenspalten: absolut / Anteil in %. Einwohner, Männer/Frauen: Destatis Gemeindeverzeichnis, 31.12.2025.<br>
+    <h3 style="font-size:14px;font-weight:700;color:var(--accent);margin:14px 0 4px">Quellen</h3>
+    <p class="muted" style="font-size:10.5px;line-height:1.5">Alle Zahlenspalten: absolut / Anteil in %. Einwohner, Männer/Frauen: Destatis Gemeindeverzeichnis, 31.12.2025.<br>
       <sup>1</sup> Zensus 2022, Tab. 2000S-1001; Anteil an den Erwerbspersonen; Erwerbslose nach ILO-Definition, nicht die bei der Arbeitsagentur gemeldeten Arbeitslosen.<br>
       <sup>2</sup> Zensus 2022, Tab. 1000A-1019; Ausländer einschließlich Sonstige.<br>
       <sup>3</sup> Zensus 2022, Tab. 2000S-1003; Personen ab 15 Jahren, nur Gemeinden, die der Zensus ausweist, gerundet.</p>
