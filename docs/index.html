@@ -7,10 +7,19 @@
 <title>Chronik rechter Gewalt: Karte und Statistik nach Gemeinden</title>
 <meta name="description" content="Interaktive Karte und Statistik zu rechter Gewalt in Deutschland nach Gemeinden, Städten und Bundesländern: bundesweit 2014 bis Juni 2017, Brandenburg bis 2026.">
 <meta name="robots" content="index, follow">
+<meta name="author" content="Chronik rechter Gewalt">
+<meta name="keywords" content="rechte Gewalt, Chronik, Brandenburg, Gemeinden, Karte, Statistik, Angriffe auf Geflüchtete, Bundestagswahl, Todesopfer">
+<meta name="theme-color" content="#f6f4f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1917" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Chronik rechter Gewalt: Karte und Statistik nach Gemeinden">
-<meta property="og:description" content="Fälle nach Gemeinden, Städten und Bundesländern, mit Vergleichsdaten der Statistischen Ämter.">
+<meta property="og:description" content="Karte und Statistik zu rechter Gewalt in Deutschland nach Gemeinden, Städten und Bundesländern, mit Vergleichsdaten der Statistischen Ämter und Bundestagswahlen 1949 bis 2025.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="de_DE">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Chronik rechter Gewalt: Karte und Statistik nach Gemeinden">
+<meta name="twitter:description" content="Karte und Statistik zu rechter Gewalt in Deutschland nach Gemeinden, Städten und Bundesländern.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Chronik rechter Gewalt: Karte und Statistik nach Gemeinden","description":"Interaktive Karte und Statistik zu rechter Gewalt in Deutschland nach Gemeinden, Städten und Bundesländern: bundesweit 2014 bis Juni 2017, Brandenburg bis 2026.","inLanguage":["de","en"],"about":{"@type":"Thing","name":"Rechte Gewalt in Deutschland"},"dateModified":"2026-11-27"}</script>
 <style>
 /* required styles */
 
@@ -791,9 +800,52 @@ h3 { color: var(--accent); }
 
 html[lang="de"] .src-en{display:none}
 html[lang="en"] .src-de{display:none}
+/* Mobil: kleine Bildschirme */
+select, input, textarea { font-size: 16px; }
+@media (max-width: 560px) {
+  body { font-size: 15px; }
+  h1 { font-size: 19px; line-height: 1.25; }
+  h2 { font-size: 16px; }
+  .topbar { padding: 6px 16px; }
+  .filters { gap: 10px; }
+  .filters > label, .filters > div { flex: 1 1 100%; }
+  .filters label { width: 100%; }
+  input[type="search"] { min-width: 0; width: 100%; }
+  select, input[type="search"], button { min-height: 44px; }
+  .chip { padding: 6px 6px 6px 12px; }
+  .chip button { min-height: 32px; }
+  .chips button, .legend button { min-height: 40px; }
+  .view-tabs button { padding: 10px 14px; font-size: 15px; flex: 1 1 0; }
+  .tabs button { padding: 10px 10px; }
+  .tabs { overflow-x: auto; flex-wrap: nowrap; }
+  .stats { gap: 8px; }
+  .stat { flex: 1 1 calc(50% - 8px); }
+  .stat b { font-size: 18px; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .kpi b { font-size: 19px; }
+  .card { padding: 12px; }
+  .panel { max-height: none; }
+  #map { height: 380px; }
+  .legend { font-size: 12px; }
+  table { min-width: 560px; font-size: 12px; }
+  th, td { padding: 6px 8px; }
+  .lbl-land { width: 90px; font-size: 10px; }
+  .footer { font-size: 12px; }
+}
+@media (max-width: 360px) {
+  .kpis { grid-template-columns: 1fr; }
+  .stat { flex: 1 1 100%; }
+  .lang button { min-width: 40px; padding: 6px 8px; }
+}
 </style>
 </head>
 <body>
+<noscript>
+  <main style="max-width:760px;margin:24px auto;padding:0 16px;font:16px/1.5 system-ui,sans-serif">
+    <h1>Chronik rechter Gewalt: Karte und Statistik nach Gemeinden</h1>
+    <p>Diese Seite zeigt rechte Gewalt in Deutschland nach Gemeinden, Städten und Bundesländern. Bundesweit liegen die erfassten Fälle von 2014 bis Juni 2017 vor, für Brandenburg bis 2026. Die interaktive Karte, die Auswertung und die Filter benötigen JavaScript. Die Methodik und die Quellen stehen weiter unten auf der Seite.</p>
+  </main>
+</noscript>
 <div class="topbar">
   <div class="lang" role="group" aria-label="Sprache">
     <button type="button" id="lang-de" aria-pressed="true">DE</button>
@@ -2078,6 +2130,16 @@ html[lang="en"] .src-de{display:none}
   }
   var MOON_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
   var SUN_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>';
+  var META_DE = { t: "Chronik rechter Gewalt: Karte und Statistik nach Gemeinden", d: "Interaktive Karte und Statistik zu rechter Gewalt in Deutschland nach Gemeinden, Städten und Bundesländern: bundesweit 2014 bis Juni 2017, Brandenburg bis 2026." };
+  var META_EN = { t: "Right-wing violence in Germany: map and statistics by municipality", d: "Interactive map and statistics on right-wing violence in Germany by municipality, city and state: nationwide 2014 to June 2017, Brandenburg until 2026." };
+  function setMeta() {
+    var m = LANG === "en" ? META_EN : META_DE;
+    document.title = m.t;
+    var set = function (sel, v) { var e = document.querySelector(sel); if (e) e.setAttribute("content", v); };
+    set('meta[name="description"]', m.d); set('meta[property="og:title"]', m.t); set('meta[property="og:description"]', m.d);
+    set('meta[name="twitter:title"]', m.t); set('meta[name="twitter:description"]', m.d);
+    set('meta[property="og:locale"]', LANG === "en" ? "en_US" : "de_DE");
+  }
   function applyTheme(mode) {
     if (mode) document.documentElement.setAttribute("data-theme", mode); else document.documentElement.removeAttribute("data-theme");
     var bt = document.getElementById("btn-theme");
@@ -2104,6 +2166,7 @@ html[lang="en"] .src-de{display:none}
       LANG = l;
       try { localStorage.setItem("crg-lang", LANG); } catch (e) {}
       translateDom();
+      setMeta();
       applyTheme(document.documentElement.getAttribute("data-theme"));
       renderAW();
       if (typeof applyWahlMap === "function") applyWahlMap();
@@ -2117,6 +2180,7 @@ html[lang="en"] .src-de{display:none}
       }, 250);
     });
     translateDom();
+    setMeta();
     if (window.MutationObserver) new MutationObserver(scheduleTranslate).observe(document.body, { childList: true, subtree: true, characterData: true });
   }
   bindPrefs();
