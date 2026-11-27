@@ -113,24 +113,24 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
   </div>
 
   <form class="filters" id="filters" onsubmit="return false" aria-label="Filter">
+    <label>Suche
+      <input type="search" id="f-q" placeholder="z. B. Brandanschlag, Ort, Stichwort" autocomplete="off">
+    </label>
     <label>Jahr
       <select id="f-jahr"><option value="">Alle</option><option>2015</option><option>2016</option><option>2017</option></select>
     </label>
-    <div class="kat-wrap">
-      <span class="kat-label">Straftat</span>
-      <div class="chips" id="kat-chips" role="group" aria-label="Straftat"></div>
-      <select id="f-kat" hidden aria-hidden="true"><option value="">Alle</option></select>
-    </div>
     <label>Bundesland
       <select id="f-land"><option value="">Alle</option></select>
-    </label>
-    <label>Suche
-      <input type="search" id="f-q" placeholder="z. B. Brandanschlag, Ort, Stichwort" autocomplete="off">
     </label>
     <div>
       <span class="muted" style="font-size:12px;display:block;margin-bottom:3px">Einfärbung</span>
       <button type="button" id="m-abs" aria-pressed="true">Fälle</button>
       <button type="button" id="m-rate" aria-pressed="false">pro 100.000 EW</button>
+    </div>
+    <div class="kat-wrap">
+      <span class="kat-label">Straftat</span>
+      <div class="chips" id="kat-chips" role="group" aria-label="Straftat"></div>
+      <select id="f-kat" hidden aria-hidden="true"><option value="">Alle</option></select>
     </div>
   </form>
   <div class="chips" id="chips" aria-live="polite"></div>
@@ -222,7 +222,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       <li><a href="https://www.bundeswahlleiterin.de/" target="_blank" rel="noopener noreferrer">Bundeswahlleiterin, Wahlergebnisse</a></li>
       <li><a href="https://dserver.bundestag.de/" target="_blank" rel="noopener noreferrer">Bundestagsdrucksachen (Chronik-Quellen)</a></li>
     </ul>
-    <p>Die Chronik-Daten stammen aus Bundestagsdrucksachen, Antworten der Bundesregierung und Landesministerien, Polizeiangaben und Beratungsregistern. Die Datenlizenz ist noch nicht abschließend geklärt. Die Gemeindegrenzen dürfen frei genutzt, aber nicht verkauft werden.</p>
+    <p>Die Chronik-Daten stammen aus Bundestagsdrucksachen, Antworten der Bundesregierung und Landesministerien, Polizeiangaben und Beratungsregistern. Die Gemeindegrenzen dürfen frei genutzt, aber nicht verkauft werden.</p>
   </footer>
 </main>
 
@@ -273,7 +273,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     fetch("wahl.json").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
   ]).then(function (res) {
     CASES = res[0]; GEO = res[1]; LAND = res[2]; STAT = res[3] || {}; WAHL = res[4] || {};
-    fetch("todesopfer.json").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }).then(function (t) { TO = t; TOAGS = {}; TOCNT = {}; t.forEach(function (x) { if (x.ags) { TOAGS[x.ags] = true; TOCNT[x.ags] = (TOCNT[x.ags] || 0) + 1; } }); initTO(); renderTO(); if (typeof update === "function" && GEO && polyLayer) update(); });
+    fetch("todesopfer.json").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }).then(function (t) { TO = t; TOAGS = {}; TOCNT = {}; t.forEach(function (x) { if (x.ags) { TOAGS[x.ags] = true; TOCNT[x.ags] = (TOCNT[x.ags] || 0) + 1; } }); initTO(); renderTO(); updateTodesChip(); if (typeof update === "function" && GEO && polyLayer) update(); });
     GEO.features.forEach(function (f) {
       var p = f.properties;
       ags2name[p.ags] = p.name; ags2land[p.ags] = p.land; ags2ewz[p.ags] = p.ewz; ags2rp[p.ags] = p.rp;
@@ -306,6 +306,9 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     }
     addChip("", "Alle", CASES.length);
     Object.keys(kats).sort().forEach(function (k) { addChip(k, k, catN[k]); });
+    var tb = el("button", { type: "button", class: "chip", "data-kat": "__todes", title: "Gemeinden mit Todesopfern (Amadeu Antonio Stiftung, 1990 bis 2026). Nicht Teil der Fallzählung.", text: "Todesopfer" });
+    tb.onclick = function () { F.todes = !F.todes; F.limit = 100; update(); };
+    chipBox.appendChild(tb);
     syncKatChips();
     fill("f-land", Object.keys(lands).sort());
     function fill(id, values) {
@@ -550,14 +553,6 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       b.onclick = function () { toggleKlasse(i); };
       box.appendChild(b);
     });
-    var nTo = Object.keys(TOAGS).length;
-    if (nTo) {
-      var bt = el("button", { type: "button", "aria-pressed": F.todes ? "true" : "false", title: "Nur Gemeinden mit Todesopfern rechter Gewalt (Amadeu Antonio Stiftung, 1990 bis 2026)" }, [
-        el("i", { style: "background:" + TO_COL }), document.createTextNode("Todesopfer rechter Gewalt (" + fmt(nTo) + " Gemeinden)")
-      ]);
-      bt.onclick = function () { F.todes = !F.todes; F.limit = 100; update(); };
-      box.appendChild(bt);
-    }
     if (used["na"] || F.mode === "rate") {
       var hasNa = Object.keys(classOfAgs).some(function (a) { return classOfAgs[a] === "na"; });
       if (hasNa) {
@@ -784,9 +779,14 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
   }
 
   // ---------- Aktualisierung ----------
+  function updateTodesChip() {
+    var b = document.querySelector('#kat-chips .chip[data-kat="__todes"]');
+    if (b) b.textContent = "Todesopfer (" + fmt(Object.keys(TOAGS).length) + " Gemeinden)";
+  }
   function syncKatChips() {
     document.querySelectorAll("#kat-chips .chip").forEach(function (b) {
-      var on = b.getAttribute("data-kat") === F.kat;
+      var dk = b.getAttribute("data-kat");
+      var on = dk === "__todes" ? !!F.todes : dk === F.kat;
       b.classList.toggle("on", on);
       b.setAttribute("aria-pressed", on ? "true" : "false");
     });
