@@ -1371,9 +1371,9 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       dl.appendChild(el("dd", { text: abs == null ? "–" : fmt(abs) }));
       dl.appendChild(el("dd", { text: share == null ? "–" : fmtPct(share) }));
     }
-    dl.appendChild(el("dt", { text: "Kennzahl", class: "muted" }));
-    dl.appendChild(el("dd", { text: "Absolut", class: "muted" }));
-    dl.appendChild(el("dd", { text: "%", class: "muted" }));
+    dl.appendChild(el("dt", { text: "Kennzahl", style: "font-size:14px;font-weight:700;color:var(--accent)" }));
+    dl.appendChild(el("dd", { text: "Absolut", style: "font-size:14px;font-weight:700;color:var(--accent)" }));
+    dl.appendChild(el("dd", { text: "%", style: "font-size:14px;font-weight:700;color:var(--accent)" }));
     row("Einwohner", p.ewz || null, null);
     row("Fälle in der Chronik", mine.length, p.ewz ? mine.length / p.ewz * 100 : null);
     if (s.ewz_2006) row("Einwohner 2006 → Entwicklung", s.ewz_2006, p.ewz ? (p.ewz - s.ewz_2006) / s.ewz_2006 * 100 : null);
