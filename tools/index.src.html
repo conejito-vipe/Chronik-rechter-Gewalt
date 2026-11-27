@@ -268,7 +268,12 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     </div>
 
     <h2>Zeitliche Entwicklung</h2>
-    <div class="card"><canvas id="aw-chart"></canvas><p class="note">Gestapelt nach Straftat, für das gewählte Gebiet.</p></div>
+    <div class="card">
+      <div class="filters" style="margin-bottom:8px">
+        <label>Von Jahr <select id="aw-von"></select></label>
+        <label>Bis Jahr <select id="aw-bis"></select></label>
+      </div>
+      <canvas id="aw-chart"></canvas><p class="note">Gestapelt nach Straftat, für das gewählte Gebiet.</p></div>
 
     <h2>Gewichtung pro Gemeinde</h2>
     <div class="card">
@@ -284,7 +289,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     <div class="card" style="margin-bottom:28px">
       <p class="note">Bundestagswahl 2025, Zweitstimmen. Gemeinden gelten für ihren Wahlkreis. Für das Gebiet: Mittel der Wahlkreise, gewichtet nach Wählerinnen und Wählern.</p>
       <div id="aw-wahl-wrap" style="position:relative;height:420px"><canvas id="aw-wahl-chart" style="max-height:none"></canvas></div>
-      <p class="note" style="margin-top:10px"><b>Was man sieht:</b> Jeder Balken ist der Zweitstimmen-Anteil einer Partei im gewählten Gebiet. Die stärkste Partei steht oben. Rot markiert sind die rechten Parteien: AfD, BÜNDNIS DEUTSCHLAND und WerteUnion. Diese Einordnung ist eine Setzung und im Code änderbar (Liste RECHTE_PARTEIEN). <b>Wozu es dient:</b> Es zeigt das politische Umfeld des Gebiets, damit die Fallzahlen in Relation zu den Wahlergebnissen gelesen werden können. Ein Zusammenhang sagt nichts über Ursachen aus.</p>
+      <p class="note" style="margin-top:10px"><b>Was man sieht:</b> Jeder Balken ist der Zweitstimmen-Anteil einer Partei im gewählten Gebiet. Die stärkste Partei steht oben. Rot markiert sind die rechten Parteien: AfD, BÜNDNIS DEUTSCHLAND und WerteUnion. <b>Wozu es dient:</b> Es zeigt das politische Umfeld des Gebiets, damit die Fallzahlen in Relation zu den Wahlergebnissen gelesen werden können. Ein Zusammenhang sagt nichts über Ursachen aus.</p>
       <details><summary class="note">Zahlen als Tabelle</summary>
         <div class="tablewrap"><table><thead><tr><th>Partei</th><th class="num">Anteil im Gebiet</th><th class="num">Stimmen</th></tr></thead><tbody id="aw-wahl-body"></tbody></table></div>
       </details>
@@ -295,7 +300,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       <p class="note">Rangkorrelation (Spearman ρ) zwischen Fallrate je 100.000 EW und Stimmenanteil je Partei, auf Gemeindeebene, nur Gemeinden mit mindestens 3 Fällen im Gebiet. Parteien nur ab 100 Gemeinden mit Ergebnis. Stärke: ab 0,5 stark, ab 0,3 mittel, sonst schwach.</p>
       <div class="tablewrap"><table><thead><tr><th>Partei</th><th class="num">ρ</th><th>Stärke</th><th class="num">Gemeinden</th></tr></thead><tbody id="aw-zus-body"></tbody></table></div>
       <canvas id="aw-scatter"></canvas>
-      <p class="note">Jeder Punkt ist eine Gemeinde: AfD-Anteil gegen Fallrate. Zusammenhang ist keine Ursache.</p>
+      <p class="note">Jeder Punkt ist ein Wahlkreis: AfD-Anteil gegen Fallrate des Wahlkreises (Fälle je 100.000 Einwohner). Zusammenhang ist keine Ursache.</p>
     </div>
 
     <h2>Zusammenhänge</h2>
@@ -1001,7 +1006,10 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       cats[c.kategorie] = 1;
       if (c.kategorie === "Todesopfer") todes++;
     });
-    var years = Object.keys(byY).sort();
+    var years = Object.keys(byY).sort().filter(function (y) {
+      var v = document.getElementById("aw-von"), b = document.getElementById("aw-bis");
+      return (!v || !v.value || y >= v.value) && (!b || !b.value || y <= b.value);
+    });
     var gemCount = {};
     list.forEach(function (c) { gemCount[c.ags] = 1; });
     document.getElementById("aw-k-faelle").textContent = fmt(list.length);
@@ -1028,7 +1036,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     var rhoAfd = awSpearman(withAfd.map(function (p) { return p.rate; }), withAfd.map(function (p) { return p.afd; }));
     if (rhoAfd !== null) corr.push("<li>Rate gegen AfD-Zweitstimmen-Quote 2025 (Wahlkreis): ρ = " + rhoAfd.toFixed(2).replace(".", ",") + " über " + fmt(withAfd.length) + " Gemeinden.</li>");
     document.getElementById("aw-corr").innerHTML = corr.length ? corr.join("") : "<li>Zu wenige Gemeinden in der Auswahl für Zusammenhänge.</li>";
-    renderWahl(ranked, gwk, wk);
+    renderWahl(ranked, gwk, wk, awRows(list));
     var active = [];
     if (AF.jahr) active.push("Jahr " + AF.jahr);
     if (AF.kat) active.push(AF.kat);
@@ -1038,7 +1046,7 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     document.getElementById("aw-status").textContent = active.length ? "Aktive Filter: " + active.join(", ") + "." : "Keine Filter aktiv. Mit „Filter von Karte übernehmen“ werden die Einstellungen der Karte kopiert.";
   }
   var RECHTE_PARTEIEN = ["AfD", "BÜNDNIS DEUTSCHLAND", "WerteUnion"];
-  function renderWahl(ranked, gwk, wk) {
+  function renderWahl(ranked, gwk, wk, allRows) {
     var tb = document.getElementById("aw-wahl-body"), zb = document.getElementById("aw-zus-body");
     if (!tb || !zb || !gwk || !wk) return;
     var parties = Object.keys(wk[Object.keys(wk)[0]].parteien);
@@ -1088,10 +1096,15 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
       return "<tr><td>" + escH(z.p) + "</td><td class=\"num strong\">" + z.rho.toFixed(2).replace(".", ",") + "</td><td>" + st + (z.rho < 0 ? " (negativ)" : " (positiv)") + "</td><td class=\"num\">" + fmt(z.n) + "</td></tr>";
     }).join("") || "<tr><td colspan=\"4\">Zu wenige Gemeinden für Zusammenhänge.</td></tr>";
     // Streudiagramm AfD gegen Fallrate
-    var sc = ranked.map(function (r) { return { x: pp(r.ags, "AfD"), y: r.rate }; }).filter(function (q) { return q.x != null; });
+    var wkN = {}, wkEW = {};
+    GEO.features.forEach(function (f) { var a = f.properties.ags; if (AF.land && ags2land[a] !== AF.land) return; var k = gwk[a]; if (!k) return; wkEW[k] = (wkEW[k] || 0) + (ags2ewz[a] || 0); });
+    (allRows || []).forEach(function (r) { var k = gwk[r.ags]; if (k && wkEW[k]) wkN[k] = (wkN[k] || 0) + r.n; });
+    var sc = Object.keys(wkEW).filter(function (k) { return wk[k] && wk[k].parteien && wk[k].parteien.AfD && wkEW[k] > 0; }).map(function (k) {
+      return { x: wk[k].parteien.AfD.pct, y: (wkN[k] || 0) / wkEW[k] * 100000, label: wk[k].name || k };
+    });
     if (typeof Chart !== "undefined" && document.getElementById("aw-scatter")) {
       if (window.__awScatter) window.__awScatter.destroy();
-      window.__awScatter = new Chart(document.getElementById("aw-scatter"), { type: "scatter", data: { datasets: [{ label: "Gemeinden", data: sc, backgroundColor: "#b23a48", pointRadius: 3 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "AfD-Zweitstimmen 2025 (Wahlkreis, %)" } }, y: { title: { display: true, text: "Fälle je 100.000 EW" } } } } });
+      window.__awScatter = new Chart(document.getElementById("aw-scatter"), { type: "scatter", data: { datasets: [{ label: "Wahlkreise", data: sc, backgroundColor: "#b23a48", pointRadius: 4 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "AfD-Zweitstimmen 2025 (Wahlkreis, %)" } }, y: { title: { display: true, text: "Fälle je 100.000 EW (Wahlkreis)" } } } } });
     }
   }
   function awSyncUI() {
@@ -1119,6 +1132,11 @@ td .sub { display: block; font-size: 12px; color: var(--muted); }
     chip("", "Alle");
     Object.keys(kats).sort().forEach(function (k) { chip(k, k); });
     jsel.onchange = function (e) { AF.jahr = e.target.value; renderAW(); };
+    var vsel = document.getElementById("aw-von"), bsel = document.getElementById("aw-bis");
+    Object.keys(jahre).sort().forEach(function (y) { vsel.appendChild(el("option", { value: y, text: y })); bsel.appendChild(el("option", { value: y, text: y })); });
+    vsel.value = Object.keys(jahre).sort()[0]; bsel.value = Object.keys(jahre).sort().slice(-1)[0];
+    vsel.onchange = function () { renderAW(); };
+    bsel.onchange = function () { renderAW(); };
     lsel.onchange = function (e) { AF.land = e.target.value; renderAW(); };
     document.getElementById("aw-q").oninput = function (e) {
       clearTimeout(awTimer);
