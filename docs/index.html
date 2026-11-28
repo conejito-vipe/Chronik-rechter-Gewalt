@@ -770,6 +770,7 @@ section { margin-top: 20px; }
 .scroll-hint[hidden] { display: none; }
 .scroll-hint > span:last-child { display: flex; gap: 6px; flex: 0 0 auto; }
 .scroll-hint button { min-height: 32px; padding: 2px 12px; font-weight: 600; color: var(--accent); border-color: var(--accent); }
+.scroll-hint button:disabled { opacity: .35; cursor: default; }
 #stat-table th:first-child, #stat-table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--panel); box-shadow: 1px 0 0 var(--line); }
 table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 13px; }
 th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -1345,16 +1346,39 @@ select, input, textarea { font-size: 16px; }
     });
   }
 
-  // Hinweis und Pfeile zum seitlichen Scrollen der Vergleichstabelle
-  function initStatScroll() {
-    var w = document.getElementById("stat-wrap"), h = document.getElementById("stat-hint");
-    if (!w || !h) return;
-    function upd() { h.hidden = w.scrollWidth <= w.clientWidth + 4; }
-    document.getElementById("stat-left").onclick = function () { w.scrollBy({ left: -w.clientWidth * 0.7, behavior: "smooth" }); };
-    document.getElementById("stat-right").onclick = function () { w.scrollBy({ left: w.clientWidth * 0.7, behavior: "smooth" }); };
-    window.addEventListener("resize", upd); setTimeout(upd, 500); setInterval(upd, 2000);
+  // Gleicher Hinweis mit Pfeilen für jede seitlich scrollbare Tabelle (auch mobil)
+  var SCROLL_HINT_HTML = '<span>\u2192 Weitere Spalten rechts: Tabelle seitlich scrollen</span><span><button type="button" class="sh-l" aria-label="Nach links scrollen">\u2190</button> <button type="button" class="sh-r" aria-label="Nach rechts scrollen">\u2192</button></span>';
+  function initTableScroll() {
+    document.querySelectorAll(".tablewrap").forEach(function (w) {
+      if (w.dataset.scrollInit) return;
+      w.dataset.scrollInit = "1";
+      var h = w.id === "stat-wrap" ? document.getElementById("stat-hint") : null;
+      if (!h) {
+        h = document.createElement("div");
+        h.className = "scroll-hint"; h.hidden = true; h.innerHTML = SCROLL_HINT_HTML;
+        w.parentNode.insertBefore(h, w);
+      }
+      var bl = h.querySelector("#stat-left, .sh-l"), br = h.querySelector("#stat-right, .sh-r");
+      function step(d) { w.scrollBy({ left: d * w.clientWidth * 0.7, behavior: "smooth" }); }
+      bl.onclick = function () { step(-1); };
+      br.onclick = function () { step(1); };
+      function upd() {
+        var max = w.scrollWidth - w.clientWidth, over = max > 4;
+        h.hidden = !over;
+        bl.disabled = w.scrollLeft <= 4;
+        br.disabled = w.scrollLeft >= max - 4;
+      }
+      w.addEventListener("scroll", upd, { passive: true });
+      window.addEventListener("resize", upd);
+      if (window.ResizeObserver) { var ro = new ResizeObserver(upd); ro.observe(w); if (w.firstElementChild) ro.observe(w.firstElementChild); }
+      upd(); setTimeout(upd, 300);
+    });
   }
-  document.addEventListener("DOMContentLoaded", initStatScroll); if (document.readyState !== "loading") initStatScroll();
+  function startTableScroll() {
+    initTableScroll();
+    if (window.MutationObserver) new MutationObserver(initTableScroll).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState !== "loading") startTableScroll(); else document.addEventListener("DOMContentLoaded", startTableScroll);
 
   // ---------- Karte ----------
   function initMap() {
